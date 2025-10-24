@@ -1,0 +1,26 @@
+id,name,category,price,rating,platform,description
+1,Cyberpunk 2077,RPG,59.99,4.2,PC,Futuristic open-world RPG set in Night City
+2,The Legend of Zelda: Breath of the Wild,Adventure,59.99,4.8,Nintendo Switch,Epic adventure in the kingdom of Hyrule
+3,Call of Duty: Modern Warfare,Shooter,69.99,4.1,Multi-platform,Intense military shooter with realistic graphics
+4,Minecraft,Sandbox,26.95,4.7,Multi-platform,Creative sandbox game with endless possibilities
+5,Grand Theft Auto V,Action,29.99,4.5,Multi-platform,Open-world crime simulation game
+6,The Witcher 3: Wild Hunt,RPG,39.99,4.9,Multi-platform,Fantasy RPG with rich storytelling
+7,FIFA 24,Sports,69.99,4.0,Multi-platform,Latest installment of the popular football series
+8,Among Us,Party,4.99,4.3,Multi-platform,Social deduction game for friends
+9,Fortnite,Battle Royale,0.00,4.2,Multi-platform,Free-to-play battle royale game
+10,Red Dead Redemption 2,Action,59.99,4.8,Multi-platform,Western-themed open-world adventure
+11,Valorant,Shooter,0.00,4.4,PC,Free-to-play tactical shooter
+12,Animal Crossing: New Horizons,Simulation,59.99,4.6,Nintendo Switch,Relaxing life simulation game
+13,God of War,Action,49.99,4.9,PlayStation,Epic action-adventure with Norse mythology
+14,Rocket League,Sports,19.99,4.5,Multi-platform,Soccer with rocket-powered cars
+15,Overwatch 2,Shooter,0.00,4.1,Multi-platform,Team-based hero shooter
+16,Stardew Valley,Simulation,14.99,4.8,Multi-platform,Farming simulation with RPG elements
+17,The Last of Us Part II,Action,69.99,4.7,PlayStation,Post-apocalyptic survival adventure
+18,Super Mario Odyssey,Platformer,59.99,4.8,Nintendo Switch,3D platformer adventure with Mario
+19,Destiny 2,Shooter,0.00,4.3,Multi-platform,Free-to-play online multiplayer shooter
+20,Hades,RPG,24.99,4.9,Multi-platform,Roguelike action RPG with Greek mythology
+21,Spider-Man,Action,49.99,4.8,PlayStation,Superhero action-adventure game
+22,Monster Hunter: World,RPG,39.99,4.6,Multi-platform,Action RPG about hunting monsters
+23,Assassin's Creed Valhalla,Action,59.99,4.3,Multi-platform,Viking-themed action RPG
+24,League of Legends,MOBA,0.00,4.2,PC,Free-to-play multiplayer online battle arena
+25,Counter-Strike 2,Shooter,0.00,4.5,PC,Free-to-play tactical first-person shooter

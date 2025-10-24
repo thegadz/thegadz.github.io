@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameStore - Your Ultimate Gaming Destination</title>
+    <meta name="description" content="Discover the best games, compare prices, and find your next gaming adventure">
+    
+    <!-- Pico CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="container">
+        <nav>
+            <ul>
+                <li><strong>GameStore</strong></li>
+            </ul>
+            <ul>
+                <li><a href="#games">Games</a></li>
+                <li><a href="#deals">Deals</a></li>
+                <li><a href="#categories">Categories</a></li>
+                <li><a href="#about">About</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <main class="container">
+        <section class="hero">
+            <h1>Welcome to GameStore</h1>
+            <p>Discover amazing games, compare prices, and find your next gaming adventure. Browse our extensive collection of games across all platforms.</p>
+            <button onclick="document.getElementById('games').scrollIntoView()">Explore Games</button>
+        </section>
+
+        <!-- Search and Filter Section -->
+        <section class="search-section">
+            <div x-data="gameStore()" x-init="loadGames()">
+                <div class="search-controls">
+                    <input 
+                        type="search" 
+                        placeholder="Search games..." 
+                        x-model="searchTerm"
+                        @input="filterGames()"
+                    >
+                    <select x-model="selectedCategory" @change="filterGames()">
+                        <option value="">All Categories</option>
+                        <template x-for="category in categories" :key="category">
+                            <option :value="category" x-text="category"></option>
+                        </template>
+                    </select>
+                    <select x-model="sortBy" @change="sortGames()">
+                        <option value="name">Sort by Name</option>
+                        <option value="price">Sort by Price</option>
+                        <option value="rating">Sort by Rating</option>
+                    </select>
+                </div>
+
+                <!-- Games Grid -->
+                <section id="games" class="games-grid">
+                    <h2>Featured Games</h2>
+                    <div class="grid">
+                        <template x-for="game in filteredGames" :key="game.id">
+                            <article class="game-card">
+                                <header>
+                                    <h3 x-text="game.name"></h3>
+                                    <p class="category" x-text="game.category"></p>
+                                </header>
+                                <div class="game-info">
+                                    <p class="description" x-text="game.description"></p>
+                                    <div class="game-details">
+                                        <span class="price" x-text="'$' + game.price"></span>
+                                        <span class="rating" x-text="'★ ' + game.rating"></span>
+                                        <span class="platform" x-text="game.platform"></span>
+                                    </div>
+                                </div>
+                                <footer>
+                                    <button class="secondary">Add to Wishlist</button>
+                                    <button>Buy Now</button>
+                                </footer>
+                            </article>
+                        </template>
+                    </div>
+                </section>
+
+                <!-- Statistics -->
+                <section class="stats">
+                    <h2>Store Statistics</h2>
+                    <div class="grid">
+                        <article>
+                            <h3 x-text="totalGames"></h3>
+                            <p>Total Games</p>
+                        </article>
+                        <article>
+                            <h3 x-text="categories.length"></h3>
+                            <p>Categories</p>
+                        </article>
+                        <article>
+                            <h3 x-text="averagePrice"></h3>
+                            <p>Average Price</p>
+                        </article>
+                        <article>
+                            <h3 x-text="topRatedGame"></h3>
+                            <p>Top Rated Game</p>
+                        </article>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about">
+            <h2>About GameStore</h2>
+            <p>GameStore is your ultimate destination for discovering and purchasing games. We offer a comprehensive collection of games across all platforms, with competitive prices and detailed information to help you make the best choice for your gaming needs.</p>
+            
+            <h3>Why Choose GameStore?</h3>
+            <ul>
+                <li>Extensive game library across all platforms</li>
+                <li>Competitive pricing and regular deals</li>
+                <li>Detailed game information and reviews</li>
+                <li>Easy search and filtering options</li>
+                <li>Secure and fast checkout process</li>
+            </ul>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="container">
+        <hr>
+        <p>&copy; 2024 GameStore. All rights reserved. | Built with Alpine.js and Pico CSS</p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>

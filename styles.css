@@ -1,0 +1,375 @@
+/* Custom CSS for GameStore - Gaming-themed styling */
+
+/* Root variables for consistent theming */
+:root {
+    --primary-color: #6366f1;
+    --secondary-color: #8b5cf6;
+    --accent-color: #f59e0b;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --error-color: #ef4444;
+    --dark-bg: #1f2937;
+    --darker-bg: #111827;
+    --card-bg: #374151;
+    --text-light: #f9fafb;
+    --border-color: #4b5563;
+}
+
+/* Dark theme for gaming aesthetic */
+[data-theme="dark"] {
+    --pico-background-color: var(--darker-bg);
+    --pico-color: var(--text-light);
+    --pico-primary: var(--primary-color);
+    --pico-primary-hover: var(--secondary-color);
+    --pico-primary-inverse: var(--text-light);
+    --pico-secondary: var(--card-bg);
+    --pico-secondary-hover: var(--border-color);
+    --pico-secondary-inverse: var(--text-light);
+    --pico-muted-border-color: var(--border-color);
+    --pico-muted-color: #9ca3af;
+}
+
+/* Force dark theme */
+body {
+    background-color: var(--darker-bg);
+    color: var(--text-light);
+}
+
+/* Hero section styling */
+.hero {
+    text-align: center;
+    padding: 4rem 0;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 1rem;
+    margin: 2rem 0;
+    color: white;
+}
+
+.hero h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.hero p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.hero button {
+    background: var(--accent-color);
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.hero button:hover {
+    background: #d97706;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.2);
+}
+
+/* Search controls styling */
+.search-controls {
+    display: flex;
+    gap: 1rem;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-controls input,
+.search-controls select {
+    flex: 1;
+    min-width: 200px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+
+.search-controls input:focus,
+.search-controls select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* Games grid styling */
+.games-grid {
+    margin: 3rem 0;
+}
+
+.games-grid h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--primary-color);
+    font-size: 2.5rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+/* Game card styling */
+.game-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.game-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+    border-color: var(--primary-color);
+}
+
+.game-card header h3 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    font-size: 1.3rem;
+}
+
+.game-card .category {
+    background: var(--secondary-color);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    display: inline-block;
+    margin-bottom: 1rem;
+}
+
+.game-card .description {
+    color: var(--pico-muted-color);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.game-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.game-details .price {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--success-color);
+}
+
+.game-details .rating {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+.game-details .platform {
+    background: var(--dark-bg);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.game-card footer {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.game-card footer button {
+    flex: 1;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.game-card footer button.secondary {
+    background: var(--secondary-color);
+    color: white;
+}
+
+.game-card footer button.secondary:hover {
+    background: #7c3aed;
+}
+
+.game-card footer button:not(.secondary) {
+    background: var(--primary-color);
+    color: white;
+}
+
+.game-card footer button:not(.secondary):hover {
+    background: #4f46e5;
+}
+
+/* Statistics section */
+.stats {
+    margin: 4rem 0;
+    padding: 2rem;
+    background: var(--card-bg);
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.stats h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--primary-color);
+}
+
+.stats .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.stats article {
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--dark-bg);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.stats article h3 {
+    font-size: 2rem;
+    color: var(--accent-color);
+    margin-bottom: 0.5rem;
+}
+
+.stats article p {
+    color: var(--pico-muted-color);
+    font-size: 1.1rem;
+}
+
+/* About section styling */
+#about {
+    margin: 4rem 0;
+    padding: 2rem;
+    background: var(--card-bg);
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+#about h2 {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+}
+
+#about h3 {
+    color: var(--secondary-color);
+    margin: 2rem 0 1rem 0;
+}
+
+#about ul {
+    list-style: none;
+    padding: 0;
+}
+
+#about li {
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+#about li::before {
+    content: "🎮";
+    position: absolute;
+    left: 0;
+}
+
+/* Footer styling */
+footer {
+    margin-top: 4rem;
+    padding: 2rem 0;
+    text-align: center;
+    color: var(--pico-muted-color);
+}
+
+footer hr {
+    border-color: var(--border-color);
+    margin-bottom: 1rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2rem;
+    }
+    
+    .hero p {
+        font-size: 1rem;
+    }
+    
+    .search-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-controls input,
+    .search-controls select {
+        min-width: auto;
+    }
+    
+    .grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .game-details {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .game-card footer {
+        flex-direction: column;
+    }
+}
+
+/* Loading animation */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.loading {
+    animation: pulse 2s infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--dark-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-color);
+}
