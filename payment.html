@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - GameStore</title>
+    <meta name="description" content="Complete your purchase">
+    
+    <!-- Pico CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="container">
+        <nav>
+            <ul>
+                <li><strong><a href="index.html" style="text-decoration: none; color: inherit;">GameStore</a></strong></li>
+            </ul>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="games.html">Games</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="cart.html">Cart <span id="cart-badge" class="badge" style="display: none;">0</span></a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div x-data="cartPage()" x-init="loadCart()">
+            <h1>Complete Your Purchase</h1>
+            
+            <!-- Empty Cart Redirect -->
+            <div x-show="cart.length === 0" class="empty-cart">
+                <p>Your cart is empty. Redirecting...</p>
+            </div>
+            
+            <!-- Payment Section -->
+            <div x-show="cart.length > 0" class="payment-section">
+                <!-- Order Summary -->
+                <section class="order-summary">
+                    <h2>Order Summary</h2>
+                    <div class="order-items">
+                        <template x-for="item in cart" :key="item.id">
+                            <div class="order-item">
+                                <span x-text="item.name"></span>
+                                <span x-text="'x' + item.quantity"></span>
+                                <span x-text="formatIDR(item.price * item.quantity)"></span>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="order-total">
+                        <strong>Total: <span x-text="formatIDR(cartTotal)"></span></strong>
+                    </div>
+                </section>
+                
+                <!-- Payment QR Code -->
+                <section class="payment-qr">
+                    <h2>Scan to Pay</h2>
+                    <p>Please scan the QR code below to complete your payment:</p>
+                    <div class="qr-container">
+                        <img src="static/qr-code.jpeg" alt="Payment QR Code" class="qr-code">
+                    </div>
+                    <p class="payment-instructions">
+                        After payment, you will receive your game codes via email within 24 hours.
+                    </p>
+                    <div class="payment-actions">
+                        <a href="cart.html" class="button secondary">Back to Cart</a>
+                        <button @click="clearCart(); window.location.href='index.html'" class="button primary">Payment Complete</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="container">
+        <hr>
+        <p>&copy; 2024 GameStore. All rights reserved. | Built with Alpine.js and Pico CSS</p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="script.js"></script>
+    <script>
+        // Redirect if cart is empty
+        document.addEventListener('DOMContentLoaded', function() {
+            const cart = CartManager.getCart();
+            if (cart.length === 0) {
+                setTimeout(() => {
+                    window.location.href = 'cart.html';
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
+

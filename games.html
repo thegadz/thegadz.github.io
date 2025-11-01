@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games - GameStore</title>
+    <meta name="description" content="Browse our extensive collection of games across all platforms">
+    
+    <!-- Pico CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="container">
+        <nav>
+            <ul>
+                <li><strong><a href="index.html" style="text-decoration: none; color: inherit;">GameStore</a></strong></li>
+            </ul>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="games.html" class="active">Games</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="cart.html">Cart <span id="cart-badge" class="badge" style="display: none;">0</span></a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <section class="search-section">
+            <div x-data="gameStore()" x-init="loadGames(); initCart();">
+                <h1>Browse Games</h1>
+                
+                <div class="search-controls">
+                    <input 
+                        type="search" 
+                        placeholder="Search games..." 
+                        x-model="searchTerm"
+                        @input="filterGames()"
+                    >
+                    <select x-model="selectedCategory" @change="filterGames()">
+                        <option value="">All Categories</option>
+                        <template x-for="category in categories" :key="category">
+                            <option :value="category" x-text="category"></option>
+                        </template>
+                    </select>
+                    <select x-model="sortBy" @change="sortGames()">
+                        <option value="name">Sort by Name</option>
+                        <option value="price">Sort by Price</option>
+                        <option value="rating">Sort by Rating</option>
+                    </select>
+                </div>
+
+                <!-- Games Grid -->
+                <section class="games-grid">
+                    <!-- Loading State -->
+                    <div x-show="isLoading" class="loading-container">
+                        <p class="loading-message">Loading games...</p>
+                    </div>
+                    
+                    <!-- Error Message -->
+                    <div x-show="errorMessage" class="error-message" x-text="errorMessage"></div>
+                    
+                    <!-- Games List -->
+                    <div class="grid" x-show="!isLoading">
+                        <template x-for="game in filteredGames" :key="game.id">
+                            <article class="game-card">
+                                <header>
+                                    <h3 x-text="game.name"></h3>
+                                    <p class="category" x-text="game.category"></p>
+                                </header>
+                                <div class="game-info">
+                                    <p class="description" x-text="game.description"></p>
+                                    <div class="game-details">
+                                        <span class="price" x-text="formatIDR(game.price)"></span>
+                                        <span class="rating" x-text="'★ ' + game.rating"></span>
+                                        <span class="platform" x-text="game.platform"></span>
+                                    </div>
+                                </div>
+                                <footer>
+                                    <button 
+                                        @click="addToCart(game)" 
+                                        :class="isInCart(game.id) ? 'in-cart' : 'primary'"
+                                        x-text="isInCart(game.id) ? '✓ In Cart (' + getCartQuantity(game.id) + ')' : 'Add to Cart'"
+                                    ></button>
+                                </footer>
+                            </article>
+                        </template>
+                        
+                        <!-- Empty State -->
+                        <div x-show="!isLoading && filteredGames.length === 0" class="empty-state">
+                            <p>No games found matching your criteria.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Statistics -->
+                <section class="stats">
+                    <h2>Store Statistics</h2>
+                    <div class="grid">
+                        <article>
+                            <h3 x-text="totalGames"></h3>
+                            <p>Total Games</p>
+                        </article>
+                        <article>
+                            <h3 x-text="categories.length"></h3>
+                            <p>Categories</p>
+                        </article>
+                        <article>
+                            <h3 x-text="averagePrice"></h3>
+                            <p>Average Price</p>
+                        </article>
+                        <article>
+                            <h3 x-text="topRatedGame"></h3>
+                            <p>Top Rated Game</p>
+                        </article>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="container">
+        <hr>
+        <p>&copy; 2024 GameStore. All rights reserved. | Built with Alpine.js and Pico CSS</p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
+
