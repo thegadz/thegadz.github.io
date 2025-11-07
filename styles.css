@@ -15,16 +15,15 @@
     --border-color: #4b5563;
 }
 
-.site-header {
+.top-banner {
     position: relative;
     width: 100%;
-    margin: 0;
     overflow: hidden;
-    padding: 2rem 0;
+    padding: 2rem 0 3rem;
     margin-bottom: 2rem;
 }
 
-.site-header::before {
+.top-banner::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -34,7 +33,7 @@
     z-index: 0;
 }
 
-.site-header::after {
+.top-banner::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -42,9 +41,19 @@
     z-index: 1;
 }
 
-.site-header .container {
+.top-banner > * {
     position: relative;
     z-index: 2;
+}
+
+.top-banner .container {
+    position: relative;
+    z-index: 2;
+}
+
+.site-header {
+    padding: 0;
+    margin: 0;
 }
 
 .site-header nav {
@@ -93,10 +102,12 @@ body {
 .hero {
     text-align: center;
     padding: 4rem 0;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background: rgba(17, 24, 39, 0.72);
     border-radius: 1rem;
-    margin: 2rem 0;
+    margin: 2rem auto 0;
     color: white;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
 .hero h1 {
@@ -109,6 +120,11 @@ body {
     font-size: 1.2rem;
     margin-bottom: 2rem;
     opacity: 0.9;
+}
+
+.container p {
+    margin-left: 1rem;
+    margin-right: 1rem;
 }
 
 .hero button {
