@@ -15,6 +15,60 @@
     --border-color: #4b5563;
 }
 
+.site-header {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    overflow: hidden;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.site-header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url('/static/game-banner.jpeg') center/cover no-repeat;
+    filter: blur(4px);
+    transform: scale(1.05);
+    z-index: 0;
+}
+
+.site-header::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.6);
+    z-index: 1;
+}
+
+.site-header .container {
+    position: relative;
+    z-index: 2;
+}
+
+.site-header nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.site-header nav ul {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+}
+
+.site-header nav ul.brand li {
+    font-size: 1.5rem;
+}
+
 /* Dark theme for gaming aesthetic */
 [data-theme="dark"] {
     --pico-background-color: var(--darker-bg);
