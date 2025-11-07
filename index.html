@@ -64,6 +64,9 @@
                                 <p class="category" x-text="game.category"></p>
                             </header>
                             <div class="game-info">
+                                <template x-if="game.image">
+                                    <img class="game-image" :src="game.image" :alt="game.name + ' cover'">
+                                </template>
                                 <p class="description" x-text="game.description"></p>
                                 <div class="game-details">
                                     <span class="price" x-text="formatIDR(game.price)"></span>

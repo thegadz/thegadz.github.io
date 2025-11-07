@@ -118,6 +118,7 @@
             game.price = parseFloat(game.price) || 0;
             game.rating = parseFloat(game.rating) || 0;
             game.id = parseInt(game.id) || index + 1;
+
             return game;
         });
 
