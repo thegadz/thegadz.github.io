@@ -28,8 +28,6 @@
     position: absolute;
     inset: 0;
     background: url('/static/game-banner.jpeg') center/cover no-repeat;
-    filter: blur(4px);
-    transform: scale(1.05);
     z-index: 0;
 }
 
@@ -101,10 +99,10 @@ body {
 /* Hero section styling */
 .hero {
     text-align: center;
-    padding: 4rem 0;
+    padding: 1rem 0;
     background: rgba(17, 24, 39, 0.72);
     border-radius: 1rem;
-    margin: 2rem auto 0;
+    margin: 1rem auto 0;
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
