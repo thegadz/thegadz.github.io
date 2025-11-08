@@ -121,8 +121,6 @@
 
             return game;
         });
-
-        context.categories = [...new Set(context.games.map(game => game.category))].sort();
     }
 
     async function loadGames(context) {
@@ -130,14 +128,16 @@
         if (cachedGames) {
             context.games = cachedGames.games;
             context.lastFetchTime = cachedGames.lastFetchTime;
+            context.categories = cachedGames.categories || [...new Set(context.games.map(game => game.category))].filter(category => category !== '').sort();
+            context.types = cachedGames.types || [...new Set(context.games.map(game => game.type))].filter(type => type !== '').sort();
             context.filteredGames = [...context.games];
             context.updateStatistics();
             context.isLoading = false;
             console.log('Loaded from cache, last fetched at', new Date(context.lastFetchTime).toISOString());
 
             const timeDiff = new Date().getTime() - context.lastFetchTime;
-            if (timeDiff < 1000 * 60 * 2) {            
-                console.log('Cache is less than 2 minutes old, skipping fetch...');
+            if (timeDiff < 1000 * 60 * 5) {            
+                console.log('Cache is less than 5 minutes old, skipping fetch...');
                 return;
             }
         }
@@ -212,14 +212,23 @@
 
             parseCSV(context, csvText);
             context.filteredGames = [...context.games];
+            // Remove blank game id and name
+            context.games = context.games.filter(game => (game?.id ?? '') !== '' && (game?.name ?? '') !== '');
             context.updateStatistics();
             context.isLoading = false;
             context.lastFetchTime = new Date().getTime();
+
+            context.categories = [...new Set(context.games.map(game => game.category))].sort();
+            context.categories = context.categories.filter(category => category !== '');
+            context.types = [...new Set(context.games.map(game => game.type))].sort();
+            context.types = context.types.filter(type => type !== '');
 
             // Cache the games data
             setCache('gamesData', {
                 games: context.games,
                 lastFetchTime: context.lastFetchTime,
+                categories: context.categories,
+                types: context.types,
             });
         } catch (error) {
             console.error('Error loading games:', error);

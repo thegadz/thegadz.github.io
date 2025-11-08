@@ -24,8 +24,8 @@
             </ul>
             <ul>
                 <li><a href="index.html">Home</a></li>
-                <li><a href="games.html" class="active">Games</a></li>
-                <li><a href="voucher.html">Voucher</a></li>
+                <li><a href="games.html">Games</a></li>
+                <li><a href="voucher.html" class="active">Voucher</a></li>
                 <li><a href="about.html">About</a></li>
                 <li><a href="cart.html">Cart <span id="cart-badge" class="badge" style="display: none;">0</span></a></li>
             </ul>
@@ -35,7 +35,7 @@
     <!-- Main Content -->
     <main class="container">
         <section class="search-section">
-            <div x-data="gameStore()" x-init="loadGames(); initCart();">
+            <div x-data="gameStore()" x-init="initializeVoucherPage()">
                 <h1>Browse Games</h1>
                 
                 <div class="search-controls">
@@ -45,10 +45,10 @@
                         x-model="searchTerm"
                         @input="filterGames()"
                     >
-                    <select x-model="selectedCategory" @change="filterGames()" x-init="selectedCategory = ''">
-                        <option value="" :selected="selectedCategory === ''">All Categories</option>
-                        <template x-for="category in categories" :key="category">
-                            <option :value="category" x-text="category"></option>
+                    <select x-model="selectedType" @change="filterGames()">
+                        <option value="">All Types</option>
+                        <template x-for="type in types" :key="type">
+                            <option :value="type" x-text="type"></option>
                         </template>
                     </select>
                     <select x-model="sortBy" @change="sortGames()">

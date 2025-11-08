@@ -5,8 +5,10 @@ document.addEventListener('alpine:init', () => {
         games: [],
         filteredGames: [],
         categories: [],
+        types: [],
         searchTerm: '',
         selectedCategory: '',
+        selectedType: '',
         sortBy: 'name',
         totalGames: 0,
         averagePrice: 'Rp 0',
@@ -18,7 +20,21 @@ document.addEventListener('alpine:init', () => {
         cartCount: 0,
 
         async loadGames() {
-            return window.GoogleSheet.loadGames(this);
+            await window.GoogleSheet.loadGames(this);
+        },
+
+        async initializeVoucherPage() {
+            await this.loadGames();
+            this.initCart();
+
+            if (!this.selectedType) {
+                const defaultType = this.types.find(type => type && type.toLowerCase() === 'voucher') || this.types[0] || '';
+                if (defaultType) {
+                    this.selectedType = defaultType;
+                }
+            }
+
+            this.filterGames();
         },
 
         filterGames() {
@@ -37,6 +53,11 @@ document.addEventListener('alpine:init', () => {
             // Filter by category
             if (this.selectedCategory) {
                 filtered = filtered.filter(game => game.category === this.selectedCategory);
+            }
+
+            // Filter by type
+            if (this.selectedType) {
+                filtered = filtered.filter(game => game.type === this.selectedType);
             }
 
             this.filteredGames = filtered;
