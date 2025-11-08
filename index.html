@@ -57,7 +57,7 @@
                 
                 <!-- Games Preview (first 6) -->
                 <div class="grid" x-show="!isLoading">
-                    <template x-for="game in games.slice(0, 6)" :key="game.id">
+                    <template x-for="game in games.slice(0, 8)" :key="game.id">
                         <article class="game-card">
                             <header>
                                 <h3 x-text="game.name"></h3>
