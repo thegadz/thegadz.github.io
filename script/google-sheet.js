@@ -136,7 +136,6 @@
             console.log('Loaded from cache, last fetched at', new Date(context.lastFetchTime).toISOString());
 
             const timeDiff = new Date().getTime() - context.lastFetchTime;
-            console.log('Time difference:', timeDiff, 'ms');
             if (timeDiff < 1000 * 60 * 2) {            
                 console.log('Cache is less than 2 minutes old, skipping fetch...');
                 return;
