@@ -1,134 +1,167 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> TheGadz Store</title>
-    <meta name="description" content="Discover the best Games, E-Wallet, Software, Compare prices, and Find your next adventure">
-    
-    <!-- Pico CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="styles.css">
-    
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TheGadz Store — Top Up Game Instan</title>
+<meta name="description" content="Top up game favorit kamu dengan harga terbaik. Bayar pakai QRIS, GoPay, OVO, DANA, ShopeePay, atau Virtual Account." />
+<meta name="theme-color" content="#0b0f1a" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>" />
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --card: #141a2a;
+    --card-2: #1b2337;
+    --line: #263049;
+    --text: #e9edf7;
+    --muted: #9aa6c0;
+    --brand: #7c5cff;
+    --brand-2: #21d4b4;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: radial-gradient(900px 420px at 50% -160px, #241a52 0%, var(--bg) 60%) no-repeat, var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+    padding-bottom: 40px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .2px; }
+  .logo {
+    width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2)); font-size: 18px;
+  }
+  .tag {
+    font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+    color: var(--brand-2); border: 1px solid #1f4a44; background: #10231f;
+    padding: 4px 8px; border-radius: 999px;
+  }
+
+  .hero { padding: 26px 0 18px; text-align: center; }
+  .hero h1 { font-size: clamp(24px, 6vw, 34px); margin: 0 0 8px; line-height: 1.2; }
+  .hero h1 span { background: linear-gradient(90deg, var(--brand), var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { margin: 0 auto; max-width: 460px; color: var(--muted); font-size: 15px; }
+
+  .search { position: relative; margin: 22px 0 8px; }
+  .search input {
+    width: 100%; padding: 15px 16px 15px 44px; font-size: 16px; color: var(--text);
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); outline: none;
+  }
+  .search input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(124, 92, 255, .18); }
+  .search svg { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); opacity: .55; }
+
+  .section-title { display: flex; align-items: baseline; justify-content: space-between; margin: 26px 0 12px; }
+  .section-title h2 { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: .3px; }
+  .section-title small { color: var(--muted); font-size: 12px; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (min-width: 560px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px; text-align: left; cursor: pointer; transition: .15s ease;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .card:hover, .card:focus-visible { border-color: var(--brand); transform: translateY(-2px); }
+  .thumb {
+    height: 74px; border-radius: 10px; display: grid; place-items: center;
+    font-weight: 800; font-size: 15px; color: #fff;
+    background: linear-gradient(135deg, #3a2b7a, #1c2b4a);
+  }
+  .card:nth-child(2) .thumb { background: linear-gradient(135deg, #7a2b4a, #2a1530); }
+  .card:nth-child(3) .thumb { background: linear-gradient(135deg, #2b6f7a, #122a30); }
+  .card:nth-child(4) .thumb { background: linear-gradient(135deg, #7a642b, #2a2212); }
+  .card:nth-child(5) .thumb { background: linear-gradient(135deg, #2b7a4f, #12302a); }
+  .card:nth-child(6) .thumb { background: linear-gradient(135deg, #7a2b2b, #301414); }
+  .card b { font-size: 14px; font-weight: 600; }
+  .card small { color: var(--muted); font-size: 12px; }
+  .empty { display: none; color: var(--muted); text-align: center; padding: 24px 0; font-size: 14px; }
+
+  .pay { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .pay span {
+    font-size: 12px; font-weight: 600; color: #cbd5e9;
+    background: var(--card-2); border: 1px solid var(--line);
+    padding: 7px 11px; border-radius: 9px;
+  }
+
+  .note {
+    margin-top: 28px; padding: 14px 16px; border-radius: var(--radius);
+    background: #10231f; border: 1px solid #1f4a44; color: #b9e8de; font-size: 13px;
+  }
+  footer { margin-top: 26px; text-align: center; color: #6b7693; font-size: 12px; }
+  footer a { color: #8f9bb8; }
+</style>
 </head>
 <body>
-    <div class="top-banner">
-        <header class="site-header">
-            <div class="container">
-                <nav>
-                    <ul class="brand">
-                        <li><strong><a href="index.html" style="text-decoration: none; color: inherit;">TheGadz Store</a></strong></li>
-                    </ul>
-                    <ul>
-                        <li><a href="index.html" class="active">Home</a></li>
-                        <li><a href="games.html">Games</a></li>
-                         <li><a href="voucher.html">Voucher</a></li>
-                        <li><a href="about.html">About</a></li>
-                        <li><a href="imagesgen.html">imagesgen</a></li>
-                        <li><a href="cart.html">Cart <span id="cart-badge" class="badge" style="display: none;">0</span></a></li>
-                    </ul>
-                </nav>
-            </div>
-        </header>
+<div class="wrap">
 
-        <section class="container" style="height: 17rem;"></section>
-        <!-- Hero Section -->
-        <section class="hero container">
-            <p>Discover amazing games, Software ,E Wallet, and find your next gaming adventure Browse our extensive collection of games across all platforms .</p>
-            <a href="games.html" class="button">Explore Thegadzstore The Games Exchanger</a>
-        </section>
-    </div>
+  <header>
+    <div class="brand"><span class="logo">🎮</span> TheGadz Store</div>
+    <span class="tag">Demo</span>
+  </header>
 
-    <!-- Main Content -->
-    <main class="container">
-        <section class="search-section">
-            <div x-data="gameStore()" x-init="loadGames(); initCart();">
-                <h2>Featured Games</h2>
-                
-                <!-- Loading State -->
-                <div x-show="isLoading" class="loading-container">
-                    <p class="loading-message">Loading games...</p>
-                </div>
-                
-                <!-- Error Message -->
-                <div x-show="errorMessage" class="error-message" x-text="errorMessage"></div>
-                
-                <!-- Games Preview (first 6) -->
-                <div class="grid" x-show="!isLoading">
-                    <template x-for="(game, index) in games.slice(0, 8)" :key="game.id !== undefined ? game.id + '-' + index : index">
-                        <article class="game-card">
-                            <header>
-                                <h3 x-text="game.name"></h3>
-                                <p class="category" x-text="game.category"></p>
-                            </header>
-                            <div class="game-info">
-                                <template x-if="game.image">
-                                    <img class="game-image" :src="game.image" :alt="game.name + ' cover'">
-                                </template>
-                                <p class="description" x-text="game.description"></p>
-                                <div class="game-details">
-                                    <span class="price" x-text="formatIDR(game.price)"></span>
-                                    <span class="rating" x-text="'★ ' + game.rating"></span>
-                                    <span class="platform" x-text="game.platform"></span>
-                                </div>
-                            </div>
-                            <footer>
-                                <button 
-                                    @click="addToCart(game)" 
-                                    :class="isInCart(game.id) ? 'in-cart' : 'primary'"
-                                    x-text="isInCart(game.id) ? '✓ In Cart (' + getCartQuantity(game.id) + ')' : 'Add to Cart'"
-                                ></button>
-                            </footer>
-                        </article>
-                    </template>
-                </div>
-                
-                <div x-show="!isLoading" style="text-align: center; margin-top: 2rem;">
-                    <a href="games.html" class="button">View All Games</a>
-                </div>
+  <section class="hero">
+    <h1>Top Up Game <span>Instan &amp; Aman</span></h1>
+    <p>Isi diamond, UC, dan voucher favoritmu dalam hitungan detik. Harga transparan, pembayaran lokal.</p>
+  </section>
 
-                <!-- Statistics -->
-                <section class="stats">
-                    <h2>Store Statistics</h2>
-                    <div class="grid">
-                        <article>
-                            <h3 x-text="totalGames"></h3>
-                            <p>Total Games</p>
-                        </article>
-                        <article>
-                            <h3 x-text="categories.length"></h3>
-                            <p>Categories</p>
-                        </article>
-                        <article>
-                            <h3 x-text="averagePrice"></h3>
-                            <p>Average Price</p>
-                        </article>
-                        <article>
-                            <h3 x-text="topRatedGame"></h3>
-                            <p>Top Rated Game</p>
-                        </article>
-                    </div>
-                </section>
-            </div>
-        </section>
-    </main>
+  <div class="search">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="Cari game atau voucher…" autocomplete="off" aria-label="Cari game" />
+  </div>
 
-    <!-- Footer -->
-    <footer class="container">
-        <hr>
-        <p>&copy; 2025 ThegadzStore. All rights reserved. | Built with Alpine.js and Pico CSS</p>
-    </footer>
+  <div class="section-title">
+    <h2>Game Populer</h2>
+    <small id="count">6 game</small>
+  </div>
 
-    <!-- JavaScript -->
-    <script src="script/helper.js"></script>
-    <script src="script/imagesgen.js"></script>
-    <script src="script/imagestovideo.js"></script>
-    <script src="script/google-sheet.js"></script>
-    <script src="script/cart.js"></script>
-    <script src="script.js"></script>
+  <div class="grid" id="grid">
+    <div class="card" tabindex="0"><div class="thumb">MLBB</div><b>Mobile Legends</b><small>Diamond · 86 item</small></div>
+    <div class="card" tabindex="0"><div class="thumb">FF</div><b>Free Fire</b><small>Diamond · 64 item</small></div>
+    <div class="card" tabindex="0"><div class="thumb">PUBG</div><b>PUBG Mobile</b><small>UC · 48 item</small></div>
+    <div class="card" tabindex="0"><div class="thumb">GI</div><b>Genshin Impact</b><small>Genesis Crystal · 40 item</small></div>
+    <div class="card" tabindex="0"><div class="thumb">VALO</div><b>Valorant</b><small>Points · 32 item</small></div>
+    <div class="card" tabindex="0"><div class="thumb">STEAM</div><b>Steam Wallet</b><small>Voucher · 12 item</small></div>
+  </div>
+  <p class="empty" id="empty">Game tidak ditemukan. Coba kata kunci lain.</p>
+
+  <div class="section-title"><h2>Pembayaran</h2></div>
+  <div class="pay">
+    <span>QRIS</span><span>GoPay</span><span>OVO</span><span>DANA</span><span>ShopeePay</span><span>BCA VA</span><span>Mandiri VA</span><span>BRI VA</span>
+  </div>
+
+  <div class="note">
+    Halaman ini masih tahap demo untuk validasi produk. Belum ada transaksi nyata yang diproses.
+  </div>
+
+  <footer>
+    © 2026 TheGadz Store · <a href="https://github.com/thegadz">github.com/thegadz</a>
+  </footer>
+</div>
+
+<script>
+  var q = document.getElementById('q');
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.card'));
+  var empty = document.getElementById('empty');
+  var count = document.getElementById('count');
+
+  q.addEventListener('input', function () {
+    var term = q.value.trim().toLowerCase();
+    var shown = 0;
+    cards.forEach(function (card) {
+      var match = card.textContent.toLowerCase().indexOf(term) !== -1;
+      card.style.display = match ? '' : 'none';
+      if (match) shown++;
+    });
+    empty.style.display = shown === 0 ? 'block' : 'none';
+    count.textContent = shown + ' game';
+  });
+</script>
 </body>
 </html>
