@@ -451,6 +451,7 @@
     });
 
     api("/api/products/" + encodeURIComponent(slug)).then(function (data) {
+      try {
       if (token !== state.viewToken) return;
       var product = data.product;
       var denominations = data.denominations || [];
@@ -602,6 +603,12 @@
           toast(error.message, true);
         });
       });
+      } catch (renderErr) {
+        console.error("renderProduct failed", renderErr);
+        view.innerHTML = '<div class="state-card"><span class="state-icon">⚠️</span><h2>Gagal menampilkan produk</h2>' +
+          "<p>" + (renderErr && renderErr.message ? esc(renderErr.message) : "Terjadi kesalahan.") + "</p>" +
+          '<a class="primary-btn" href="#/">Kembali ke beranda</a></div>';
+      }
     }).catch(function (error) {
       if (token !== state.viewToken) return;
       if (error.status === 404) {
@@ -611,7 +618,7 @@
           '<a class="primary-btn" href="#/">Kembali ke beranda</a></div>';
       } else {
         view.innerHTML = '<div class="state-card"><span class="state-icon">⚠️</span><h2>Gagal memuat produk</h2>' +
-          "<p>" + esc(error.message) + "</p>" +
+          "<p>" + (error && error.message ? esc(error.message) : "Terjadi kesalahan.") + "</p>" +
           '<a class="primary-btn" href="#/">Kembali ke beranda</a></div>';
       }
     });
