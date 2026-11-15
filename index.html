@@ -3,611 +3,196 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>TheGadz Store — Top Up Game Instan</title>
-<meta name="description" content="Top up game favorit kamu dengan harga terbaik. Bayar pakai QRIS, GoPay, OVO, DANA, ShopeePay, atau Virtual Account." />
-<meta name="theme-color" content="#0b0f1a" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>" />
-<style>
-  :root {
-    --bg:#0b0f1a; --card:#141a2a; --card-2:#1b2337; --line:#263049;
-    --text:#e9edf7; --muted:#9aa6c0; --brand:#7c5cff; --brand-2:#21d4b4;
-    --warn:#ffb020; --danger:#ff5c6c; --ok:#2ee6a8; --radius:14px;
-  }
-  * { box-sizing:border-box; }
-  html { -webkit-text-size-adjust:100%; }
-  body {
-    margin:0; background:radial-gradient(900px 420px at 50% -160px,#241a52 0%,var(--bg) 60%) no-repeat,var(--bg);
-    color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.5;
-  }
-  .wrap { max-width:720px; margin:0 auto; padding:0 16px 40px; }
-  [hidden] { display:none !important; }
-  button { font:inherit; }
-  a { color:#8f9bb8; }
-
-  header { display:flex; align-items:center; justify-content:space-between; padding:18px 0; }
-  .brand { display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; cursor:pointer; background:none; border:0; color:inherit; padding:0; }
-  .logo { width:34px; height:34px; border-radius:10px; display:grid; place-items:center; background:linear-gradient(135deg,var(--brand),var(--brand-2)); font-size:18px; }
-  .tag { font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--brand-2); border:1px solid #1f4a44; background:#10231f; padding:4px 8px; border-radius:999px; }
-
-  .hero { padding:26px 0 18px; text-align:center; }
-  .hero h1 { font-size:clamp(24px,6vw,34px); margin:0 0 8px; line-height:1.2; }
-  .hero h1 span { background:linear-gradient(90deg,var(--brand),var(--brand-2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
-  .hero p { margin:0 auto; max-width:460px; color:var(--muted); font-size:15px; }
-
-  .search { position:relative; margin:22px 0 8px; }
-  .search input, .field input, .tracker input {
-    width:100%; padding:14px 16px; font-size:16px; color:var(--text);
-    background:var(--card); border:1px solid var(--line); border-radius:var(--radius); outline:none;
-  }
-  .search input { padding-left:44px; }
-  .search input:focus, .field input:focus, .tracker input:focus { border-color:var(--brand); box-shadow:0 0 0 3px rgba(124,92,255,.18); }
-  .search svg { position:absolute; left:15px; top:50%; transform:translateY(-50%); opacity:.55; }
-
-  .section-title { display:flex; align-items:baseline; justify-content:space-between; margin:26px 0 12px; }
-  .section-title h2 { font-size:15px; font-weight:700; margin:0; letter-spacing:.3px; }
-  .section-title small { color:var(--muted); font-size:12px; }
-
-  .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
-  @media (min-width:560px) { .grid { grid-template-columns:repeat(3,1fr); } }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:14px; text-align:left; cursor:pointer; transition:.15s ease; display:flex; flex-direction:column; gap:10px; color:inherit; }
-  .card:hover, .card:focus-visible { border-color:var(--brand); transform:translateY(-2px); }
-  .thumb { height:74px; border-radius:10px; display:grid; place-items:center; font-weight:800; font-size:15px; color:#fff; background:linear-gradient(135deg,#3a2b7a,#1c2b4a); }
-  .card b { font-size:14px; font-weight:600; }
-  .card small { color:var(--muted); font-size:12px; }
-  .empty { display:none; color:var(--muted); text-align:center; padding:24px 0; font-size:14px; }
-
-  .pay { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
-  .pay span { font-size:12px; font-weight:600; color:#cbd5e9; background:var(--card-2); border:1px solid var(--line); padding:7px 11px; border-radius:9px; }
-
-  .note { margin-top:20px; padding:14px 16px; border-radius:var(--radius); background:#10231f; border:1px solid #1f4a44; color:#b9e8de; font-size:13px; }
-
-  .tracker { margin-top:14px; display:flex; gap:8px; }
-  .tracker input { flex:1; }
-  .result { margin-top:10px; font-size:13px; color:var(--muted); }
-
-  /* game view */
-  .back { background:none; border:0; color:var(--muted); padding:14px 0 6px; cursor:pointer; font-size:14px; }
-  .back:hover { color:var(--text); }
-  .game-head { display:flex; gap:14px; align-items:center; margin:8px 0 18px; }
-  .game-head .thumb { width:86px; height:86px; flex:0 0 86px; }
-  .game-head h2 { margin:0 0 4px; font-size:20px; }
-  .game-head p { margin:0; color:var(--muted); font-size:13px; }
-
-  .panel { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px; }
-  .panel h3 { margin:0 0 4px; font-size:15px; }
-  .panel .hint { margin:0 0 14px; color:var(--muted); font-size:12.5px; }
-  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  @media (max-width:420px) { .row { grid-template-columns:1fr; } }
-  .field label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
-  .btn { width:100%; margin-top:12px; padding:13px 16px; border-radius:11px; border:1px solid var(--line); background:var(--card-2); color:var(--text); font-weight:700; cursor:pointer; }
-  .btn:hover { border-color:var(--brand); }
-  .btn-primary { background:linear-gradient(135deg,var(--brand),#5b3fd6); border-color:transparent; }
-  .btn-primary:disabled { opacity:.45; cursor:not-allowed; }
-  .btn-ok { background:linear-gradient(135deg,#1f9e77,#157a5c); border-color:transparent; }
-  .btn-ghost { background:none; }
-  .err { margin-top:10px; color:var(--danger); font-size:13px; }
-  .verified { display:flex; gap:10px; align-items:center; margin-top:12px; padding:12px; border-radius:11px; background:#10231f; border:1px solid #1f4a44; }
-  .verified .who { font-size:13px; }
-  .verified b { display:block; font-size:14px; color:#dff8f1; }
-  .verified small { color:#7fc4b4; }
-  .verified .dot { width:9px; height:9px; border-radius:50%; background:var(--ok); flex:0 0 9px; }
-
-  .denoms { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
-  @media (min-width:560px) { .denoms { grid-template-columns:repeat(3,1fr); } }
-  .denom { position:relative; text-align:left; padding:14px; border-radius:11px; border:1px solid var(--line); background:var(--card-2); color:inherit; cursor:pointer; }
-  .denom:hover { border-color:var(--brand); }
-  .denom.sel { border-color:var(--brand); box-shadow:0 0 0 2px rgba(124,92,255,.28); }
-  .denom b { display:block; font-size:14px; }
-  .denom .price { display:block; margin-top:4px; font-size:13px; color:var(--brand-2); font-weight:700; }
-  .denom .strike { margin-left:6px; font-size:11px; color:#6b7693; text-decoration:line-through; font-weight:400; }
-  .badge { position:absolute; top:-8px; right:8px; font-size:10px; font-weight:800; letter-spacing:.4px; padding:3px 7px; border-radius:999px; background:var(--danger); color:#fff; }
-
-  .pm { display:flex; flex-direction:column; gap:8px; }
-  .pm button { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border-radius:11px; border:1px solid var(--line); background:var(--card-2); color:inherit; cursor:pointer; text-align:left; }
-  .pm button:hover { border-color:var(--brand); }
-  .pm button.sel { border-color:var(--brand); box-shadow:0 0 0 2px rgba(124,92,255,.28); }
-  .pm .name { font-size:14px; font-weight:600; }
-  .pm .fee { font-size:11.5px; color:var(--muted); }
-
-  /* sticky summary */
-  .bar { position:sticky; bottom:0; margin:0 -16px; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:rgba(11,15,26,.94); border-top:1px solid var(--line); backdrop-filter:blur(8px); display:flex; align-items:center; gap:12px; }
-  .bar .sum { flex:1; line-height:1.25; }
-  .bar .sum small { color:var(--muted); font-size:11px; }
-  .bar .sum b { font-size:17px; }
-  .bar .btn { width:auto; margin:0; padding:13px 20px; white-space:nowrap; }
-
-  /* invoice */
-  .inv-top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:14px 0; }
-  .status { font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; padding:5px 10px; border-radius:999px; }
-  .s-pending { background:#3a2a08; color:var(--warn); border:1px solid #6b4c10; }
-  .s-paid { background:#0d2f24; color:var(--ok); border:1px solid #1f5f4a; }
-  .s-expired { background:#33121a; color:var(--danger); border:1px solid #6b2230; }
-  .timer { font-variant-numeric:tabular-nums; font-weight:800; font-size:20px; }
-  .timer small { display:block; font-size:10px; font-weight:600; color:var(--muted); letter-spacing:.5px; }
-  .qris { display:block; margin:0 auto; width:220px; max-width:70vw; height:auto; background:#fff; border-radius:12px; padding:10px; }
-  .qr-wrap { text-align:center; }
-  .qr-wrap .lbl { margin-top:10px; font-size:12px; color:var(--muted); }
-  .dl { margin:0; }
-  .dl div { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px dashed var(--line); font-size:13.5px; }
-  .dl div:last-child { border-bottom:0; }
-  .dl dt { color:var(--muted); }
-  .dl dd { margin:0; text-align:right; }
-  .dl .total { font-weight:800; font-size:16px; color:var(--brand-2); }
-  .warnbox { margin-top:12px; padding:12px 14px; border-radius:11px; background:#2a2210; border:1px solid #5c4a1a; color:#f0d9a8; font-size:12.5px; }
-
-  footer { margin-top:26px; text-align:center; color:#6b7693; font-size:12px; }
-</style>
+<meta name="theme-color" content="#0a8f4c" />
+<meta name="api-base" content="https://gadzstore-api.blueicespeed.workers.dev" />
+<title>TheGadz Store — Top Up Game & Voucher Murah, Aman, Cepat</title>
+<meta name="description" content="Top up game, voucher, pulsa, dan e-money dengan harga murah. Proses instan 24 jam, pembayaran QRIS." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a8f4c'/><text x='50' y='68' font-size='54' text-anchor='middle'>🎮</text></svg>" />
+<link rel="stylesheet" href="store.css" />
 </head>
 <body>
-<div class="wrap">
 
-  <header>
-    <button class="brand" id="homeBtn" type="button"><span class="logo">🎮</span> TheGadz Store</button>
-    <span class="tag">Demo</span>
-  </header>
-
-  <!-- ============ CATALOG ============ -->
-  <section id="view-catalog">
-    <div class="hero">
-      <h1>Top Up Game <span>Instan &amp; Aman</span></h1>
-      <p>Isi diamond, UC, dan voucher favoritmu dalam hitungan detik. Harga transparan, pembayaran lokal.</p>
-    </div>
-
-    <div class="search">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="q" type="search" placeholder="Cari game atau voucher…" autocomplete="off" aria-label="Cari game" />
-    </div>
-
-    <div class="section-title"><h2>Game Populer</h2><small id="count"></small></div>
-    <div class="grid" id="grid"></div>
-    <p class="empty" id="empty">Game tidak ditemukan. Coba kata kunci lain.</p>
-
-    <div class="section-title"><h2>Pembayaran</h2></div>
-    <div class="pay"><span>QRIS</span><span>GoPay</span><span>OVO</span><span>DANA</span><span>ShopeePay</span><span>BCA VA</span><span>Mandiri VA</span><span>BRI VA</span></div>
-
-    <div class="section-title"><h2>Lacak Pesanan</h2></div>
-    <div class="tracker">
-      <input id="trackInput" placeholder="Masukkan ID pesanan, mis. TGAB12CD" autocomplete="off" />
-      <button class="btn" style="width:auto;margin:0;padding:0 18px" id="trackBtn" type="button">Cek</button>
-    </div>
-    <div class="result" id="trackResult"></div>
-
-    <div class="note">Halaman ini tahap demo untuk validasi produk. Tidak ada transaksi nyata yang diproses.</div>
-  </section>
-
-  <!-- ============ GAME ============ -->
-  <section id="view-game" hidden>
-    <button class="back" id="backBtn" type="button">← Kembali ke katalog</button>
-
-    <div class="game-head">
-      <div class="thumb" id="gThumb"></div>
-      <div><h2 id="gName"></h2><p id="gSub"></p></div>
-    </div>
-
-    <div class="panel">
-      <h3>1. Verifikasi Akun</h3>
-      <p class="hint">Masukkan ID sesuai yang tertera di profil game. Salah ID = item masuk ke akun orang lain.</p>
-      <div class="row">
-        <div class="field">
-          <label for="playerId">Player ID</label>
-          <input id="playerId" inputmode="numeric" placeholder="contoh: 88291034" autocomplete="off" />
-        </div>
-        <div class="field" id="zoneField">
-          <label for="zoneId">Server / Zone ID</label>
-          <input id="zoneId" inputmode="numeric" placeholder="contoh: 2145" autocomplete="off" />
-        </div>
-      </div>
-      <button class="btn" id="verifyBtn" type="button">Verify ID</button>
-      <p class="err" id="verifyErr" hidden></p>
-      <div class="verified" id="verifiedBox" hidden>
-        <span class="dot"></span>
-        <div class="who"><b id="vNick"></b><small id="vId"></small></div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>2. Pilih Nominal</h3>
-      <p class="hint" id="denomHint">Pilih nominal top up.</p>
-      <div class="denoms" id="denoms"></div>
-    </div>
-
-    <div class="panel">
-      <h3>3. Metode Pembayaran</h3>
-      <p class="hint">Biaya admin ditampilkan transparan sebelum bayar.</p>
-      <div class="pm" id="payMethods"></div>
-    </div>
-
-    <div class="bar">
-      <div class="sum"><small id="barLabel">Belum ada nominal dipilih</small><b id="barTotal">Rp0</b></div>
-      <button class="btn btn-primary" id="orderBtn" type="button" disabled>Buat Pesanan</button>
-    </div>
-  </section>
-
-  <!-- ============ INVOICE ============ -->
-  <section id="view-invoice" hidden>
-    <button class="back" id="backCatalog" type="button">← Katalog</button>
-
-    <div class="inv-top">
-      <div>
-        <small style="color:var(--muted);font-size:11px;letter-spacing:.5px">ID PESANAN</small>
-        <div style="font-weight:800;font-size:17px" id="invId">—</div>
-      </div>
-      <div style="text-align:right">
-        <span class="status s-pending" id="invStatus">Menunggu Pembayaran</span>
-        <div class="timer" id="invTimer">15:00<small>SISA WAKTU</small></div>
-      </div>
-    </div>
-
-    <div class="panel qr-wrap" id="qrPanel">
-      <svg class="qris" id="qrSvg" viewBox="0 0 29 29" role="img" aria-label="QRIS demo"></svg>
-      <div class="lbl">Scan dengan aplikasi bank / e-wallet apa pun</div>
-    </div>
-
-    <div class="panel">
-      <dl class="dl" id="invDetails"></dl>
-      <div class="warnbox">Simulasi: klik tombol di bawah untuk menandai pesanan sudah dibayar.</div>
-      <button class="btn btn-ok" id="payNowBtn" type="button" style="margin-top:12px">✅ Simulasi Pembayaran Berhasil</button>
-      <button class="btn btn-ghost" id="newOrderBtn" type="button" hidden>Buat Pesanan Baru</button>
-    </div>
-
-    <div class="note" id="paidNote" hidden>Pesanan <b id="paidId"></b> sudah dibayar dan sedang diproses otomatis. Cek status di menu <b>Lacak Pesanan</b>.</div>
-  </section>
-
-  <footer>© 2026 TheGadz Store · <a href="https://github.com/thegadz">github.com/thegadz</a></footer>
+<div class="topbar">
+  <div class="container topbar-inner">
+    <span>⚡ Proses instan 24 jam</span>
+    <span class="topbar-sep">•</span>
+    <span>🔒 Pembayaran QRIS aman</span>
+    <span class="topbar-spacer"></span>
+    <a href="#/lacak">Lacak Pesanan</a>
+  </div>
 </div>
 
-<script>
-(function () {
-  "use strict";
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="#/" aria-label="TheGadz Store">
+      <span class="brand-mark">🎮</span>
+      <span class="brand-text"><b>TheGadz</b><small>STORE</small></span>
+    </a>
 
-  /* ---------------- data ---------------- */
-  var GAMES = [
-    { id:"mlbb", name:"Mobile Legends", short:"MLBB", unit:"Diamond", zone:true, count:86,
-      items:[
-        { d:"86 Diamond", p:22000, promo:0 },
-        { d:"172 Diamond", p:43000, promo:0 },
-        { d:"257 Diamond", p:64000, promo:5000 },
-        { d:"344 Diamond", p:85000, promo:0 },
-        { d:"706 Diamond", p:172000, promo:12000 },
-        { d:"Weekly Diamond Pass", p:28000, promo:0 }
-      ] },
-    { id:"ff", name:"Free Fire", short:"FF", unit:"Diamond", zone:false, count:64,
-      items:[
-        { d:"70 Diamond", p:10000, promo:0 },
-        { d:"140 Diamond", p:19500, promo:1500 },
-        { d:"355 Diamond", p:49000, promo:0 },
-        { d:"720 Diamond", p:98000, promo:8000 },
-        { d:"1440 Diamond", p:195000, promo:0 }
-      ] },
-    { id:"pubgm", name:"PUBG Mobile", short:"PUBG", unit:"UC", zone:false, count:48,
-      items:[
-        { d:"60 UC", p:15000, promo:0 },
-        { d:"325 UC", p:79000, promo:0 },
-        { d:"660 UC", p:155000, promo:10000 },
-        { d:"1800 UC", p:399000, promo:25000 }
-      ] },
-    { id:"genshin", name:"Genshin Impact", short:"GI", unit:"Genesis Crystal", zone:true, count:40,
-      items:[
-        { d:"60 Genesis Crystal", p:16000, promo:0 },
-        { d:"300 Genesis Crystal", p:79000, promo:0 },
-        { d:"980 Genesis Crystal", p:249000, promo:15000 },
-        { d:"1980 Genesis Crystal", p:479000, promo:0 }
-      ] },
-    { id:"valorant", name:"Valorant", short:"VALO", unit:"VP", zone:false, count:32,
-      items:[
-        { d:"420 VP", p:49000, promo:0 },
-        { d:"700 VP", p:79000, promo:5000 },
-        { d:"1375 VP", p:149000, promo:0 },
-        { d:"2400 VP", p:249000, promo:20000 }
-      ] },
-    { id:"steam", name:"Steam Wallet", short:"STEAM", unit:"Voucher", zone:false, count:12,
-      items:[
-        { d:"Steam Wallet Rp12.000", p:13500, promo:0 },
-        { d:"Steam Wallet Rp45.000", p:47000, promo:0 },
-        { d:"Steam Wallet Rp90.000", p:92000, promo:2000 },
-        { d:"Steam Wallet Rp250.000", p:253000, promo:0 }
-      ] }
-  ];
+    <form class="search" id="searchForm" role="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="searchInput" type="search" placeholder="Cari game, voucher, pulsa…" autocomplete="off" aria-label="Cari produk" />
+      <button type="submit">Cari</button>
+    </form>
 
-  var PAYMENTS = [
-    { id:"qris", name:"QRIS", fee:0.7, kind:"percent" },
-    { id:"gopay", name:"GoPay", fee:2, kind:"percent" },
-    { id:"ovo", name:"OVO", fee:2, kind:"percent" },
-    { id:"dana", name:"DANA", fee:2, kind:"percent" },
-    { id:"shopeepay", name:"ShopeePay", fee:2, kind:"percent" },
-    { id:"bca", name:"BCA Virtual Account", fee:4000, kind:"flat" },
-    { id:"mandiri", name:"Mandiri Virtual Account", fee:4000, kind:"flat" },
-    { id:"bri", name:"BRI Virtual Account", fee:4000, kind:"flat" }
-  ];
+    <div class="header-actions">
+      <a class="ghost-btn" href="#/lacak">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg>
+        Lacak
+      </a>
+      <a class="ghost-btn" href="#cara-top-up">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-.8.6-1.5 1-1.5 2"/><path d="M12 17h.01"/></svg>
+        Bantuan
+      </a>
+    </div>
+  </div>
+</header>
 
-  var NICKS = ["Gadz","Rifqi","Nabila","Bagas","Salsabila","Dimas","Ayu","Fajar","Kirana","Reza","Putra","Intan"];
+<nav class="cat-nav" aria-label="Kategori">
+  <div class="container cat-nav-inner" id="catNav">
+    <a class="cat-chip active" href="#/">Semua</a>
+  </div>
+</nav>
 
-  /* ---------------- helpers ---------------- */
-  var $ = function (id) { return document.getElementById(id); };
-  var rupiah = function (n) { return "Rp" + Math.round(n).toLocaleString("id-ID"); };
-  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" })[c]; }); };
-  var views = { catalog:$("view-catalog"), game:$("view-game"), invoice:$("view-invoice") };
-  function show(name) {
-    Object.keys(views).forEach(function (k) { views[k].hidden = k !== name; });
-    window.scrollTo({ top:0, behavior:"smooth" });
-  }
+<main class="container" id="main">
+  <section id="homeView">
+    <div class="hero">
+      <div class="hero-copy">
+        <span class="hero-kicker">TOP UP GAMES &amp; VOUCHER</span>
+        <h1>Murah, Aman,<br /><span>Cepat Sampai.</span></h1>
+        <p>Isi diamond, UC, voucher, pulsa, dan saldo e-money favoritmu. Proses otomatis 24 jam dengan pembayaran QRIS.</p>
+        <div class="hero-actions">
+          <a class="primary-btn" href="#top-up-game">Mulai Top Up</a>
+          <a class="outline-btn" href="#cara-top-up">Cara Top Up</a>
+        </div>
+        <div class="hero-trust">
+          <span>✓ Harga transparan</span>
+          <span>✓ Proses instan</span>
+          <span>✓ Support 24 jam</span>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="hero-card hero-card-main">
+          <span class="hero-card-icon">🎮</span>
+          <b>Top Up Game</b>
+          <small>Diamond • UC • VP</small>
+        </div>
+        <div class="hero-card hero-card-a"><span>💎</span><b>Instan</b><small>&lt; 1 menit</small></div>
+        <div class="hero-card hero-card-b"><span>🔒</span><b>QRIS</b><small>Semua bank</small></div>
+        <div class="hero-glow"></div>
+      </div>
+    </div>
 
-  var state = { game:null, item:null, pay:null, verified:null, order:null, tick:null };
+    <div class="promo-strip">
+      <div class="promo-strip-item"><span class="promo-icon">⚡</span><div><b>Proses Instan</b><small>Pesanan diproses otomatis 24 jam</small></div></div>
+      <div class="promo-strip-item"><span class="promo-icon">🛡️</span><div><b>100% Aman</b><small>Data akun tidak disimpan berlebihan</small></div></div>
+      <div class="promo-strip-item"><span class="promo-icon">💳</span><div><b>Bayar QRIS</b><small>Scan dari bank atau e-wallet apa pun</small></div></div>
+      <div class="promo-strip-item"><span class="promo-icon">🎧</span><div><b>Bantuan 24/7</b><small>Tim siap membantu pesananmu</small></div></div>
+    </div>
 
-  /* ---------------- catalog ---------------- */
-  function renderCatalog(filter) {
-    var term = (filter || "").toLowerCase().trim();
-    var html = "", shown = 0;
-    GAMES.forEach(function (g) {
-      if (term && (g.name + " " + g.short + " " + g.unit).toLowerCase().indexOf(term) === -1) return;
-      shown++;
-      html += '<button class="card" type="button" data-game="' + g.id + '">' +
-                '<div class="thumb">' + esc(g.short) + '</div>' +
-                '<b>' + esc(g.name) + '</b>' +
-                '<small>' + esc(g.unit) + ' · ' + g.count + ' item</small>' +
-              '</button>';
-    });
-    $("grid").innerHTML = html;
-    $("empty").style.display = shown ? "none" : "block";
-    $("count").textContent = shown + " game";
-  }
-  $("q").addEventListener("input", function () { renderCatalog(this.value); });
-  $("grid").addEventListener("click", function (e) {
-    var card = e.target.closest("[data-game]");
-    if (card) openGame(card.getAttribute("data-game"));
-  });
+    <div id="rails" class="rails">
+      <div class="loading-block">Memuat katalog…</div>
+    </div>
 
-  /* ---------------- game view ---------------- */
-  function openGame(id) {
-    var g = GAMES.filter(function (x) { return x.id === id; })[0];
-    if (!g) return;
-    state.game = g; state.item = null; state.pay = null; state.verified = null;
+    <section class="promo-section">
+      <div class="section-head"><h2>Promo &amp; Info</h2><span>Pilihan minggu ini</span></div>
+      <div class="promo-grid">
+        <article class="promo-card promo-card-green">
+          <span class="promo-tag">PROMO</span>
+          <h3>Diskon Diamond<br />Setiap Hari</h3>
+          <p>Harga spesial untuk nominal pilihan. Cek langsung di halaman produk.</p>
+          <a href="#top-up-game">Lihat promo →</a>
+        </article>
+        <article class="promo-card promo-card-dark">
+          <span class="promo-tag">QRIS</span>
+          <h3>Bayar Praktis<br />Satu Scan</h3>
+          <p>QRIS otomatis dengan nominal pesanan. Tidak perlu transfer manual.</p>
+          <a href="#cara-top-up">Cara bayar →</a>
+        </article>
+        <article class="promo-card promo-card-light">
+          <span class="promo-tag">BARU</span>
+          <h3>Voucher &amp; Pulsa<br />Kini Tersedia</h3>
+          <p>Steam, Google Play, PSN, pulsa, hingga saldo e-money dalam satu tempat.</p>
+          <a href="#voucher">Jelajahi →</a>
+        </article>
+      </div>
+    </section>
 
-    $("gThumb").textContent = g.short;
-    $("gName").textContent = g.name;
-    $("gSub").textContent = g.unit + " · " + g.items.length + " nominal tersedia";
-    $("zoneField").hidden = !g.zone;
-    $("playerId").value = ""; $("zoneId").value = "";
-    $("verifyErr").hidden = true;
-    $("verifiedBox").hidden = true;
-    $("denomHint").textContent = "Pilih nominal top up.";
+    <section class="howto" id="cara-top-up">
+      <div class="section-head"><h2>Cara Top Up</h2><span>3 langkah mudah</span></div>
+      <div class="howto-grid">
+        <div class="howto-step"><span class="howto-num">1</span><div><b>Pilih game &amp; nominal</b><p>Cari produk, masukkan ID akun, lalu pilih nominal yang diinginkan.</p></div></div>
+        <div class="howto-step"><span class="howto-num">2</span><div><b>Bayar dengan QRIS</b><p>Scan QR pesanan dari aplikasi bank atau e-wallet favoritmu.</p></div></div>
+        <div class="howto-step"><span class="howto-num">3</span><div><b>Pesanan diproses</b><p>Setelah pembayaran dikonfirmasi, pesanan langsung diproses.</p></div></div>
+      </div>
+    </section>
 
-    var dh = "";
-    g.items.forEach(function (it, i) {
-      var finalPrice = it.p - (it.promo || 0);
-      dh += '<button class="denom" type="button" data-item="' + i + '">' +
-              (it.promo ? '<span class="badge">HEMAT</span>' : '') +
-              '<b>' + esc(it.d) + '</b>' +
-              '<span class="price">' + rupiah(finalPrice) +
-                (it.promo ? '<span class="strike">' + rupiah(it.p) + '</span>' : '') +
-              '</span>' +
-            '</button>';
-    });
-    $("denoms").innerHTML = dh;
+    <section class="payment-band">
+      <div>
+        <span class="payment-kicker">PEMBAYARAN</span>
+        <h2>Bayar dengan QRIS</h2>
+        <p>QRIS bisa discan dari semua aplikasi bank dan e-wallet yang mendukung QRIS. Nominal sudah otomatis, tidak perlu input manual.</p>
+      </div>
+      <div class="qris-badge" aria-label="QRIS">QRIS<span>QR Code Indonesian Standard</span></div>
+    </section>
+  </section>
 
-    var ph = "";
-    PAYMENTS.forEach(function (p) {
-      var feeTxt = p.kind === "percent" ? p.fee + "%" : rupiah(p.fee);
-      ph += '<button type="button" data-pay="' + p.id + '">' +
-              '<span><span class="name">' + esc(p.name) + '</span><br><span class="fee">Biaya admin ' + feeTxt + '</span></span>' +
-              '<span class="fee">›</span>' +
-            '</button>';
-    });
-    $("payMethods").innerHTML = ph;
+  <section id="categoryView" hidden></section>
+  <section id="productView" hidden></section>
+  <section id="orderView" hidden></section>
+  <section id="trackView" hidden></section>
+  <section id="missingView" hidden>
+    <div class="state-card">
+      <span class="state-icon">🧭</span>
+      <h2>Halaman tidak ditemukan</h2>
+      <p>Produk atau halaman yang kamu cari tidak tersedia.</p>
+      <a class="primary-btn" href="#/">Kembali ke beranda</a>
+    </div>
+  </section>
+</main>
 
-    updateBar();
-    show("game");
-  }
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <a class="brand brand-light" href="#/">
+        <span class="brand-mark">🎮</span>
+        <span class="brand-text"><b>TheGadz</b><small>STORE</small></span>
+      </a>
+      <p>Top up game, voucher, pulsa, dan saldo e-money dengan harga murah, aman, dan cepat.</p>
+      <div class="footer-pay"><span>QRIS</span><span>24 Jam</span><span>Instan</span></div>
+    </div>
+    <div class="footer-col">
+      <b>Produk</b>
+      <a href="#top-up-game">Top Up Game</a>
+      <a href="#voucher">Voucher</a>
+      <a href="#pulsa">Pulsa</a>
+      <a href="#e-money">E-Money</a>
+      <a href="#live-apps">Live Apps</a>
+    </div>
+    <div class="footer-col">
+      <b>Bantuan</b>
+      <a href="#cara-top-up">Cara Top Up</a>
+      <a href="#/lacak">Lacak Pesanan</a>
+      <a href="#cara-top-up">Pembayaran QRIS</a>
+      <a href="#cara-top-up">Hubungi Kami</a>
+    </div>
+    <div class="footer-col">
+      <b>Informasi</b>
+      <a href="#cara-top-up">Tentang Kami</a>
+      <a href="#cara-top-up">Kebijakan Privasi</a>
+      <a href="#cara-top-up">Syarat &amp; Ketentuan</a>
+      <a href="#cara-top-up">Kebijakan Refund</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>© 2026 TheGadz Store. Semua hak dilindungi.</span>
+    <span>Harga dalam Rupiah. Pembayaran hanya via QRIS.</span>
+  </div>
+</footer>
 
-  $("denoms").addEventListener("click", function (e) {
-    var btn = e.target.closest("[data-item]");
-    if (!btn) return;
-    var i = +btn.getAttribute("data-item");
-    state.item = state.game.items[i];
-    Array.prototype.forEach.call($("denoms").children, function (c) { c.classList.remove("sel"); });
-    btn.classList.add("sel");
-    updateBar();
-  });
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  $("payMethods").addEventListener("click", function (e) {
-    var btn = e.target.closest("[data-pay]");
-    if (!btn) return;
-    var id = btn.getAttribute("data-pay");
-    state.pay = PAYMENTS.filter(function (p) { return p.id === id; })[0];
-    Array.prototype.forEach.call($("payMethods").children, function (c) { c.classList.remove("sel"); });
-    btn.classList.add("sel");
-    updateBar();
-  });
-
-  function subtotal() { return state.item ? state.item.p - (state.item.promo || 0) : 0; }
-  function fee() {
-    if (!state.pay || !state.item) return 0;
-    return state.pay.kind === "percent" ? Math.round(subtotal() * state.pay.fee / 100) : state.pay.fee;
-  }
-  function total() { return state.item ? subtotal() + fee() : 0; }
-
-  function updateBar() {
-    var label = [];
-    if (state.item) label.push(state.item.d);
-    if (state.pay) label.push(state.pay.name);
-    $("barLabel").textContent = label.length ? label.join(" · ") : "Belum ada nominal dipilih";
-    $("barTotal").textContent = rupiah(total());
-    $("orderBtn").disabled = !(state.item && state.pay && state.verified);
-  }
-
-  /* ---------------- verify id ---------------- */
-  $("verifyBtn").addEventListener("click", function () {
-    var pid = $("playerId").value.trim();
-    var zid = $("zoneId").value.trim();
-    var err = $("verifyErr");
-    var g = state.game;
-
-    if (!/^\d{5,12}$/.test(pid)) {
-      err.textContent = "Player ID harus 5–12 angka. Cek lagi di profil game.";
-      err.hidden = false; $("verifiedBox").hidden = true; state.verified = null; updateBar(); return;
-    }
-    if (g.zone && !/^\d{3,5}$/.test(zid)) {
-      err.textContent = "Server / Zone ID wajib diisi 3–5 angka untuk " + g.name + ".";
-      err.hidden = false; $("verifiedBox").hidden = true; state.verified = null; updateBar(); return;
-    }
-
-    err.hidden = true;
-    var seed = 0, i;
-    for (i = 0; i < pid.length; i++) seed += pid.charCodeAt(i) * (i + 1);
-    var nick = NICKS[seed % NICKS.length] + "•" + String(seed % 900 + 100);
-
-    state.verified = { playerId:pid, zoneId:g.zone ? zid : "", nick:nick };
-    $("vNick").textContent = nick;
-    $("vId").textContent = "ID " + pid + (g.zone ? " · Zone " + zid : "");
-    $("verifiedBox").hidden = false;
-    updateBar();
-  });
-
-  /* ---------------- order + invoice ---------------- */
-  $("orderBtn").addEventListener("click", function () {
-    if (!(state.item && state.pay && state.verified)) return;
-    var id = "TG" + Math.random().toString(36).slice(2, 8).toUpperCase();
-    var now = Date.now();
-    state.order = {
-      id: id, game: state.game.name, item: state.item.d,
-      playerId: state.verified.playerId, zone: state.verified.zoneId, nick: state.verified.nick,
-      pay: state.pay.name, subtotal: subtotal(), fee: fee(), total: total(),
-      status: "pending", createdAt: now, expiresAt: now + 15 * 60 * 1000
-    };
-    saveOrder(state.order);
-    renderInvoice();
-    show("invoice");
-  });
-
-  function saveOrder(o) {
-    try {
-      var all = JSON.parse(localStorage.getItem("tgs_orders") || "{}");
-      all[o.id] = o;
-      localStorage.setItem("tgs_orders", JSON.stringify(all));
-    } catch (e) { /* ignore */ }
-  }
-
-  function renderInvoice() {
-    var o = state.order;
-    $("invId").textContent = o.id;
-
-    var rows = [
-      ["Game", o.game],
-      ["Item", o.item],
-      ["Player", o.nick + " · " + o.playerId + (o.zone ? " (Zone " + o.zone + ")" : "")],
-      ["Pembayaran", o.pay],
-      ["Subtotal", rupiah(o.subtotal)],
-      ["Biaya admin", rupiah(o.fee)]
-    ];
-    var html = "";
-    rows.forEach(function (r) { html += "<div><dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd></div>"; });
-    html += '<div><dt>Total</dt><dd class="total">' + rupiah(o.total) + "</dd></div>";
-    $("invDetails").innerHTML = html;
-
-    $("qrSvg").innerHTML = qrModules(o.id);
-    $("payNowBtn").hidden = false;
-    $("payNowBtn").disabled = false;
-    $("newOrderBtn").hidden = true;
-    $("paidNote").hidden = true;
-    $("qrPanel").style.opacity = "1";
-    setStatus("pending");
-    startTimer();
-  }
-
-  function setStatus(s) {
-    var el = $("invStatus");
-    el.className = "status s-" + s;
-    el.textContent = s === "pending" ? "Menunggu Pembayaran" : s === "paid" ? "Lunas" : "Kedaluwarsa";
-  }
-
-  function startTimer() {
-    clearInterval(state.tick);
-    state.tick = setInterval(tick, 1000);
-    tick();
-  }
-  function tick() {
-    var o = state.order; if (!o) return;
-    var left = o.expiresAt - Date.now();
-    if (left <= 0) {
-      clearInterval(state.tick);
-      $("invTimer").textContent = "00:00";
-      if (o.status === "pending") {
-        o.status = "expired"; saveOrder(o); setStatus("expired");
-        $("payNowBtn").hidden = true;
-        $("newOrderBtn").hidden = false;
-        $("qrPanel").style.opacity = ".35";
-      }
-      return;
-    }
-    var m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
-    $("invTimer").innerHTML = ("0" + m).slice(-2) + ":" + ("0" + s).slice(-2) + "<small>SISA WAKTU</small>";
-  }
-
-  $("payNowBtn").addEventListener("click", function () {
-    var o = state.order; if (!o || o.status !== "pending") return;
-    o.status = "paid"; o.paidAt = Date.now();
-    saveOrder(o);
-    clearInterval(state.tick);
-    setStatus("paid");
-    $("invTimer").textContent = "—";
-    $("payNowBtn").hidden = true;
-    $("paidNote").hidden = false;
-    $("paidId").textContent = o.id;
-    $("qrPanel").style.opacity = ".35";
-  });
-
-  $("newOrderBtn").addEventListener("click", function () { openGame(state.game.id); });
-
-  /* ---------------- fake qris ---------------- */
-  function qrModules(seedText) {
-    var size = 29, seed = 0, i;
-    for (i = 0; i < seedText.length; i++) seed = (seed * 31 + seedText.charCodeAt(i)) % 100000;
-    function rnd() { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; }
-
-    var on = {};
-    function finder(x, y) {
-      for (var dy = 0; dy < 7; dy++) for (var dx = 0; dx < 7; dx++) {
-        var edge = dx === 0 || dy === 0 || dx === 6 || dy === 6;
-        var core = dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4;
-        if (edge || core) on[(x + dx) + "," + (y + dy)] = 1;
-      }
-    }
-    for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) {
-      if (x > 8 && y > 8) { if (rnd() > 0.55) on[x + "," + y] = 1; }
-    }
-    finder(0, 0); finder(size - 7, 0); finder(0, size - 7);
-
-    var svg = "";
-    for (var yy = 0; yy < size; yy++) for (var xx = 0; xx < size; xx++) {
-      if (on[xx + "," + yy]) svg += '<rect x="' + xx + '" y="' + yy + '" width="1" height="1" fill="#0b0f1a"/>';
-    }
-    svg += '<text x="14.5" y="15.5" text-anchor="middle" font-size="2.6" font-weight="bold" fill="#7c5cff" font-family="sans-serif">DEMO</text>';
-    return svg;
-  }
-
-  /* ---------------- tracker ---------------- */
-  $("trackBtn").addEventListener("click", function () {
-    var id = $("trackInput").value.trim().toUpperCase();
-    var box = $("trackResult");
-    if (!id) { box.textContent = "Masukkan ID pesanan dulu."; return; }
-    var all = {};
-    try { all = JSON.parse(localStorage.getItem("tgs_orders") || "{}"); } catch (e) {}
-    var o = all[id];
-    if (!o) { box.innerHTML = "Pesanan <b>" + esc(id) + "</b> tidak ditemukan di perangkat ini."; return; }
-    var label = o.status === "paid" ? "Lunas" : o.status === "expired" ? "Kedaluwarsa" : "Menunggu Pembayaran";
-    box.innerHTML = "Pesanan <b>" + esc(o.id) + "</b> · " + esc(o.game) + " · " + esc(o.item) +
-      "<br>Status: <b>" + label + "</b> · Total " + rupiah(o.total) +
-      "<br><small style=\"color:#6b7693\">Player " + esc(o.playerId) + " (" + esc(o.nick) + ")</small>";
-  });
-
-  /* ---------------- nav ---------------- */
-  $("homeBtn").addEventListener("click", function () { show("catalog"); });
-  $("backBtn").addEventListener("click", function () { show("catalog"); });
-  $("backCatalog").addEventListener("click", function () { show("catalog"); });
-
-  /* ---------------- init ---------------- */
-  renderCatalog("");
-})();
-</script>
+<script src="vendor/qrcode.min.js"></script>
+<script src="store.js"></script>
 </body>
 </html>

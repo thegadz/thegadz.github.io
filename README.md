@@ -1,85 +1,117 @@
-# GameStore Website
+# TheGadz Store
 
-A modern gaming website built with Alpine.js and Pico CSS, designed for GitHub Pages deployment.
+An Indonesian game top-up storefront inspired by modern top-up sites: a light green storefront, category rails, search, product pages, QRIS checkout, order tracking, and a token-protected admin console.
 
-## Features
+**Live store:** https://thegadz.github.io/
+**API:** https://gadzstore-api.blueicespeed.workers.dev
+**Admin:** https://gadzstore-api.blueicespeed.workers.dev/admin
 
-- **Modern Design**: Clean, gaming-themed interface with dark mode
-- **Interactive Search**: Real-time game filtering and search functionality
-- **CSV Data Integration**: Games data loaded from CSV file
-- **Responsive Layout**: Works perfectly on desktop and mobile devices
-- **Alpine.js Integration**: Lightweight JavaScript framework for interactivity
-- **Pico CSS**: Minimal CSS framework for clean styling
+## What works
 
-## Technologies Used
+- 5 categories, 24 products, ~100 denominations seeded in D1.
+- Catalog, search, category pages, and product detail from the live API.
+- Server-priced orders with player ID / zone / phone / account validation.
+- QRIS checkout with QR rendering, 15-minute countdown, and automatic status refresh.
+- Public order tracking by order ID, plus recent orders saved on the device.
+- Admin console for marking paid, fulfilling with a supplier reference, cancelling, and filtering orders.
+- Signed QRIS webhook and static-QRIS-to-dynamic-amount conversion with CRC16 validation.
+- Demo mode for exercising the full flow before a real gateway is connected.
 
-- **HTML5**: Semantic markup structure
-- **Alpine.js**: Reactive JavaScript framework
-- **Pico CSS**: Minimal CSS framework
-- **CSV**: Data storage format for game information
-- **GitHub Pages**: Static site hosting
+## Payment and fulfillment status
 
-## Project Structure
+Payments are **QRIS-only**. The current deployment runs in **demo QRIS mode**: the Worker generates a per-order demo payload and exposes a demo-paid endpoint, because a real merchant/gateway account has not been provided yet. Set `DEMO_MODE=0` and supply a valid `QRIS_STATIC_PAYLOAD` or gateway integration before accepting real money.
 
+Fulfillment is **manual** through `/admin`. The `supplier_ref` field records the supplier transaction; an automatic supplier adapter can be added later.
+
+## Architecture
+
+```text
+GitHub Pages (static SPA)
+  index.html / store.css / store.js
+        │  fetch JSON, no build step
+        ▼
+Cloudflare Worker  ←  QRIS gateway webhook (HMAC-SHA256)
+  /api/*  /admin
+        │
+        ▼
+Cloudflare D1 (SQLite)
+  categories · products · denominations · orders · order_events
 ```
-├── index.html          # Main HTML file
-├── script.js           # Alpine.js functionality and CSV parsing
-├── styles.css          # Custom CSS styling
-├── games.csv           # Game data in CSV format
-└── README.md           # This file
+
+- Frontend: vanilla HTML/CSS/JS, hash routing, vendored `qrcode-generator` 1.4.4.
+- Backend: single ES-module Worker with D1 bindings and secrets.
+- Money: integer rupiah, fee computed server-side (`QRIS_FEE_PERCENT`, default 0.7%).
+- Orders expire after `ORDER_TTL_SECONDS` (default 900 seconds).
+
+## Routes
+
+| Route | Purpose |
+| --- | --- |
+| `#/` | Storefront home with category rails |
+| `#/kategori/:slug` | Category listing |
+| `#/produk/:slug` | Product detail and checkout form |
+| `#/pesanan/:id` | Invoice, QRIS payment, status timeline |
+| `#/lacak` | Order tracking and recent orders |
+| `#/cari?q=...` | Search results |
+
+## Project layout
+
+```text
+index.html              Storefront shell
+store.css               Storefront styles
+store.js                Storefront app and hash router
+vendor/qrcode.min.js    QR renderer (MIT)
+worker/store-worker.js  Worker API, QRIS logic, admin UI
+db/schema.sql           D1 schema
+db/seed.sql             Catalog seed
+workers/deploy-store.ps1  PowerShell deployment over Cloudflare HTTP API
+tests/api.tests.ps1     25 API contract/integration tests
+docs/api.md             API reference
+workers/README.md       Deployment and production checklist
+vendor/README.md        Vendored asset provenance and license
 ```
 
-## Game Data
+Legacy pages (`about.html`, `cart.html`, `games.html`, `payment.html`, `voucher.html`, `styles.css`, `script.js`) are kept from an earlier static prototype and are not used by the storefront.
 
-The website displays 25 popular games with the following information:
-- Game name and description
-- Category (RPG, Action, Adventure, etc.)
-- Price and rating
-- Platform availability
-- Interactive filtering and sorting
+## Local development
 
-## Features Overview
+There is no build step. Serve the repository root with any static file server, for example:
 
-### Search and Filter
-- Real-time search across game names, descriptions, and categories
-- Category-based filtering
-- Sorting by name, price, or rating
+```bash
+php -S localhost:4173
+# or
+npx serve .
+```
 
-### Game Cards
-- Attractive card-based layout
-- Hover effects and animations
-- Buy Now and Add to Wishlist buttons
-- Platform badges and rating stars
+Then open `http://localhost:4173/`. The API base is set in the `api-base` meta tag in `index.html`; the deployed Worker allows cross-origin reads.
 
-### Statistics Dashboard
-- Total games count
-- Number of categories
-- Average price calculation
-- Top-rated game display
+## Deploy
 
-## Deployment
+Backend:
 
-This website is designed for GitHub Pages deployment:
+```powershell
+powershell -ExecutionPolicy Bypass -File workers\deploy-store.ps1
+```
 
-1. Push all files to a GitHub repository
-2. Enable GitHub Pages in repository settings
-3. Select the main branch as the source
-4. Your site will be available at `https://username.github.io/repository-name`
+Frontend: commit and push to `master`; GitHub Pages publishes the repository root.
 
-## Browser Support
+Secrets live in `.env` (ignored by git). Required keys and production steps are documented in [`workers/README.md`](workers/README.md).
 
-- Modern browsers with ES6+ support
-- Mobile responsive design
-- Progressive enhancement approach
+## Test
 
-## Customization
+```powershell
+powershell -ExecutionPolicy Bypass -File tests\api.tests.ps1
+```
 
-You can easily customize the website by:
-- Modifying `games.csv` to add/remove games
-- Updating `styles.css` for different color schemes
-- Extending `script.js` for additional functionality
-- Adding new sections to `index.html`
+The last run passed all 25 checks.
+
+## Documentation
+
+- [`docs/api.md`](docs/api.md) — endpoints, payloads, status model, webhook, errors.
+- [`workers/README.md`](workers/README.md) — deployment, environment variables, production checklist.
+- [`docs/superpowers/specs/2026-11-15-tokogame-store-design.md`](docs/superpowers/specs/2026-11-15-tokogame-store-design.md) — design decisions.
+- [`docs/superpowers/plans/2026-11-15-tokogame-store.md`](docs/superpowers/plans/2026-11-15-tokogame-store.md) — implementation plan.
 
 ## License
 
-This project is open source and available under the MIT License.
+MIT. The vendored QR library is MIT by Kazuhiko Arase; see [`vendor/README.md`](vendor/README.md).
