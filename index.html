@@ -3,144 +3,113 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="theme-color" content="#0a8f4c" />
+<meta name="theme-color" content="#05ce78" />
 <meta name="api-base" content="https://gadzstore-api.blueicespeed.workers.dev" />
-<title>TheGadz Store — Top Up Game & Voucher Murah, Aman, Cepat</title>
-<meta name="description" content="Top up game, voucher, pulsa, dan e-money dengan harga murah. Proses instan 24 jam, pembayaran QRIS." />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a8f4c'/><text x='50' y='68' font-size='54' text-anchor='middle'>🎮</text></svg>" />
+<title>TheGadz Store — Top Up Game &amp; Voucher Murah, Aman, Cepat</title>
+<meta name="description" content="Top up game, live app, voucher, pulsa, dan e-money dengan harga murah. Proses instan 24 jam, pembayaran QRIS." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2305ce78'/><text x='50' y='70' font-family='Arial,sans-serif' font-size='48' font-weight='800' text-anchor='middle' fill='%23000'>TG</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="store.css" />
 </head>
 <body>
 
-<div class="topbar">
-  <div class="container topbar-inner">
-    <span>⚡ Proses instan 24 jam</span>
-    <span class="topbar-sep">•</span>
-    <span>🔒 Pembayaran QRIS aman</span>
-    <span class="topbar-spacer"></span>
-    <a href="#/lacak">Lacak Pesanan</a>
-  </div>
-</div>
-
 <header class="site-header">
   <div class="container header-inner">
+    <button class="menu-btn" type="button" id="menuBtn" aria-label="Buka menu" aria-expanded="false" aria-controls="drawer">
+      <span></span><span></span><span></span>
+    </button>
+
     <a class="brand" href="#/" aria-label="TheGadz Store">
-      <span class="brand-mark">🎮</span>
-      <span class="brand-text"><b>TheGadz</b><small>STORE</small></span>
+      <span class="brand-mark">TG</span>
+      <span class="brand-word">TheGadz<span>Store</span></span>
     </a>
 
-    <form class="search" id="searchForm" role="search">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="searchInput" type="search" placeholder="Cari game, voucher, pulsa…" autocomplete="off" aria-label="Cari produk" />
-      <button type="submit">Cari</button>
-    </form>
+    <p class="header-tagline">Top Up Game &amp; Voucher Murah, Aman, Cepat</p>
 
     <div class="header-actions">
-      <a class="ghost-btn" href="#/lacak">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg>
-        Lacak
-      </a>
-      <a class="ghost-btn" href="#cara-top-up">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-.8.6-1.5 1-1.5 2"/><path d="M12 17h.01"/></svg>
-        Bantuan
-      </a>
+      <span class="region-pill">🇮🇩 <b>ID</b> · Rp</span>
+      <a class="header-track" href="#/lacak">Lacak Pesanan</a>
     </div>
   </div>
 </header>
 
-<nav class="cat-nav" aria-label="Kategori">
-  <div class="container cat-nav-inner" id="catNav">
-    <a class="cat-chip active" href="#/">Semua</a>
+<div class="drawer-overlay" id="drawerOverlay" hidden></div>
+<aside class="drawer" id="drawer" aria-label="Menu navigasi" aria-hidden="true">
+  <div class="drawer-head">
+    <a class="brand" href="#/">
+      <span class="brand-mark">TG</span>
+      <span class="brand-word">TheGadz<span>Store</span></span>
+    </a>
+    <button class="drawer-close" type="button" id="drawerClose" aria-label="Tutup menu">×</button>
   </div>
-</nav>
+  <nav class="drawer-nav" id="catNav" aria-label="Kategori"></nav>
+  <div class="drawer-extra">
+    <a href="#/lacak">Lacak Pesanan</a>
+    <a href="#/info/bantuan">Cara Top Up</a>
+    <a href="#/info/tentang">Tentang Kami</a>
+    <a href="mailto:support@thegadz.store">Hubungi Kami</a>
+  </div>
+  <div class="drawer-foot">Bayar mudah dengan <b>QRIS</b>.</div>
+</aside>
 
-<main class="container" id="main">
-  <section id="homeView">
-    <div class="hero">
-      <div class="hero-copy">
-        <span class="hero-kicker">TOP UP GAMES &amp; VOUCHER</span>
-        <h1>Murah, Aman,<br /><span>Cepat Sampai.</span></h1>
-        <p>Isi diamond, UC, voucher, pulsa, dan saldo e-money favoritmu. Proses otomatis 24 jam dengan pembayaran QRIS.</p>
-        <div class="hero-actions">
-          <a class="primary-btn" href="#top-up-game">Mulai Top Up</a>
-          <a class="outline-btn" href="#cara-top-up">Cara Top Up</a>
-        </div>
-        <div class="hero-trust">
-          <span>✓ Harga transparan</span>
-          <span>✓ Proses instan</span>
-          <span>✓ Support 24 jam</span>
-        </div>
+<main id="main">
+  <section id="homeView" class="home-view">
+    <section class="news-strip" aria-label="Promo dan berita">
+      <div class="news-track" id="newsTrack">
+        <a class="news-card news-card-ml" href="#/kategori/top-up-game">
+          <span class="news-art" aria-hidden="true">⚔️</span>
+          <span class="news-glow" aria-hidden="true"></span>
+          <span class="news-copy"><small>15 NOV 2026</small><b>Promo Diamond Mobile Legends &amp; Free Fire</b></span>
+        </a>
+        <a class="news-card news-card-live" href="#/kategori/live-apps">
+          <span class="news-art" aria-hidden="true">🎤</span>
+          <span class="news-glow" aria-hidden="true"></span>
+          <span class="news-copy"><small>14 NOV 2026</small><b>Bonus Koin Bigo Live &amp; Poppo Live</b></span>
+        </a>
+        <a class="news-card news-card-voucher" href="#/kategori/voucher">
+          <span class="news-art" aria-hidden="true">🎟️</span>
+          <span class="news-glow" aria-hidden="true"></span>
+          <span class="news-copy"><small>13 NOV 2026</small><b>Voucher Steam, Google Play, dan PSN</b></span>
+        </a>
+        <a class="news-card news-card-pulsa" href="#/kategori/pulsa">
+          <span class="news-art" aria-hidden="true">⚡</span>
+          <span class="news-glow" aria-hidden="true"></span>
+          <span class="news-copy"><small>12 NOV 2026</small><b>Isi Pulsa &amp; Saldo E-Money Lebih Praktis</b></span>
+        </a>
+        <a class="news-card news-card-qris" href="#/info/bantuan">
+          <span class="news-art" aria-hidden="true">🔒</span>
+          <span class="news-glow" aria-hidden="true"></span>
+          <span class="news-copy"><small>11 NOV 2026</small><b>Bayar Sekali Scan dengan QRIS</b></span>
+        </a>
+        <a class="news-card news-card-track" href="#/lacak">
+          <span class="news-art" aria-hidden="true">🧭</span>
+          <span class="news-glow" aria-hidden="true"></span>
+          <span class="news-copy"><small>10 NOV 2026</small><b>Lacak Pesanan Tanpa Ribet</b></span>
+        </a>
       </div>
-      <div class="hero-art" aria-hidden="true">
-        <div class="hero-card hero-card-main">
-          <span class="hero-card-icon">🎮</span>
-          <b>Top Up Game</b>
-          <small>Diamond • UC • VP</small>
-        </div>
-        <div class="hero-card hero-card-a"><span>💎</span><b>Instan</b><small>&lt; 1 menit</small></div>
-        <div class="hero-card hero-card-b"><span>🔒</span><b>QRIS</b><small>Semua bank</small></div>
-        <div class="hero-glow"></div>
-      </div>
-    </div>
+      <button class="news-arrow news-prev" type="button" id="newsPrev" aria-label="Promo sebelumnya">‹</button>
+      <button class="news-arrow news-next" type="button" id="newsNext" aria-label="Promo berikutnya">›</button>
+    </section>
 
-    <div class="promo-strip">
-      <div class="promo-strip-item"><span class="promo-icon">⚡</span><div><b>Proses Instan</b><small>Pesanan diproses otomatis 24 jam</small></div></div>
-      <div class="promo-strip-item"><span class="promo-icon">🛡️</span><div><b>100% Aman</b><small>Data akun tidak disimpan berlebihan</small></div></div>
-      <div class="promo-strip-item"><span class="promo-icon">💳</span><div><b>Bayar QRIS</b><small>Scan dari bank atau e-wallet apa pun</small></div></div>
-      <div class="promo-strip-item"><span class="promo-icon">🎧</span><div><b>Bantuan 24/7</b><small>Tim siap membantu pesananmu</small></div></div>
+    <div class="home-search-wrap">
+      <form class="search home-search" id="searchForm" role="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="searchInput" type="search" placeholder="Cari di TheGadz Store" autocomplete="off" aria-label="Cari produk" />
+      </form>
     </div>
 
     <div id="rails" class="rails">
       <div class="loading-block">Memuat katalog…</div>
     </div>
-
-    <section class="promo-section">
-      <div class="section-head"><h2>Promo &amp; Info</h2><span>Pilihan minggu ini</span></div>
-      <div class="promo-grid">
-        <article class="promo-card promo-card-green">
-          <span class="promo-tag">PROMO</span>
-          <h3>Diskon Diamond<br />Setiap Hari</h3>
-          <p>Harga spesial untuk nominal pilihan. Cek langsung di halaman produk.</p>
-          <a href="#top-up-game">Lihat promo →</a>
-        </article>
-        <article class="promo-card promo-card-dark">
-          <span class="promo-tag">QRIS</span>
-          <h3>Bayar Praktis<br />Satu Scan</h3>
-          <p>QRIS otomatis dengan nominal pesanan. Tidak perlu transfer manual.</p>
-          <a href="#cara-top-up">Cara bayar →</a>
-        </article>
-        <article class="promo-card promo-card-light">
-          <span class="promo-tag">BARU</span>
-          <h3>Voucher &amp; Pulsa<br />Kini Tersedia</h3>
-          <p>Steam, Google Play, PSN, pulsa, hingga saldo e-money dalam satu tempat.</p>
-          <a href="#voucher">Jelajahi →</a>
-        </article>
-      </div>
-    </section>
-
-    <section class="howto" id="cara-top-up">
-      <div class="section-head"><h2>Cara Top Up</h2><span>3 langkah mudah</span></div>
-      <div class="howto-grid">
-        <div class="howto-step"><span class="howto-num">1</span><div><b>Pilih game &amp; nominal</b><p>Cari produk, masukkan ID akun, lalu pilih nominal yang diinginkan.</p></div></div>
-        <div class="howto-step"><span class="howto-num">2</span><div><b>Bayar dengan QRIS</b><p>Scan QR pesanan dari aplikasi bank atau e-wallet favoritmu.</p></div></div>
-        <div class="howto-step"><span class="howto-num">3</span><div><b>Pesanan diproses</b><p>Setelah pembayaran dikonfirmasi, pesanan langsung diproses.</p></div></div>
-      </div>
-    </section>
-
-    <section class="payment-band">
-      <div>
-        <span class="payment-kicker">PEMBAYARAN</span>
-        <h2>Bayar dengan QRIS</h2>
-        <p>QRIS bisa discan dari semua aplikasi bank dan e-wallet yang mendukung QRIS. Nominal sudah otomatis, tidak perlu input manual.</p>
-      </div>
-      <div class="qris-badge" aria-label="QRIS">QRIS<span>QR Code Indonesian Standard</span></div>
-    </section>
   </section>
 
   <section id="categoryView" hidden></section>
   <section id="productView" hidden></section>
   <section id="orderView" hidden></section>
   <section id="trackView" hidden></section>
+  <section id="infoView" hidden></section>
   <section id="missingView" hidden>
     <div class="state-card">
       <span class="state-icon">🧭</span>
@@ -152,41 +121,43 @@
 </main>
 
 <footer class="site-footer">
-  <div class="container footer-grid">
-    <div class="footer-brand">
-      <a class="brand brand-light" href="#/">
-        <span class="brand-mark">🎮</span>
-        <span class="brand-text"><b>TheGadz</b><small>STORE</small></span>
-      </a>
-      <p>Top up game, voucher, pulsa, dan saldo e-money dengan harga murah, aman, dan cepat.</p>
-      <div class="footer-pay"><span>QRIS</span><span>24 Jam</span><span>Instan</span></div>
+  <div class="container footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="#/">
+          <span class="brand-mark">TG</span>
+          <span class="brand-word">TheGadz<span>Store</span></span>
+        </a>
+        <p>Top up game, live app, voucher, pulsa, dan saldo e-money dengan harga murah, aman, dan cepat.</p>
+        <div class="footer-region">🇮🇩 Indonesia <span>·</span> IDR (Rp)</div>
+      </div>
+      <div class="footer-col">
+        <b>Jelajahi</b>
+        <a href="#/kategori/top-up-game">Top Up Game</a>
+        <a href="#/kategori/live-apps">Top Up Live Apps</a>
+        <a href="#/kategori/voucher">Voucher</a>
+        <a href="#/kategori/pulsa">Pulsa</a>
+        <a href="#/kategori/e-money">E-Money</a>
+      </div>
+      <div class="footer-col">
+        <b>Bantuan</b>
+        <a href="#/lacak">Lacak Pesanan</a>
+        <a href="#/info/bantuan">Cara Top Up</a>
+        <a href="#/info/bantuan">Pembayaran QRIS</a>
+        <a href="mailto:support@thegadz.store">Hubungi Kami</a>
+      </div>
+      <div class="footer-col">
+        <b>Informasi</b>
+        <a href="#/info/tentang">Tentang Kami</a>
+        <a href="#/info/privasi">Kebijakan Privasi</a>
+        <a href="#/info/syarat">Syarat &amp; Ketentuan</a>
+        <a href="#/info/refund">Kebijakan Refund</a>
+      </div>
     </div>
-    <div class="footer-col">
-      <b>Produk</b>
-      <a href="#top-up-game">Top Up Game</a>
-      <a href="#voucher">Voucher</a>
-      <a href="#pulsa">Pulsa</a>
-      <a href="#e-money">E-Money</a>
-      <a href="#live-apps">Live Apps</a>
+    <div class="footer-bottom">
+      <span>© 2026 TheGadz Store. Semua hak dilindungi.</span>
+      <span>Harga dalam Rupiah. Pembayaran hanya via QRIS.</span>
     </div>
-    <div class="footer-col">
-      <b>Bantuan</b>
-      <a href="#cara-top-up">Cara Top Up</a>
-      <a href="#/lacak">Lacak Pesanan</a>
-      <a href="#cara-top-up">Pembayaran QRIS</a>
-      <a href="#cara-top-up">Hubungi Kami</a>
-    </div>
-    <div class="footer-col">
-      <b>Informasi</b>
-      <a href="#cara-top-up">Tentang Kami</a>
-      <a href="#cara-top-up">Kebijakan Privasi</a>
-      <a href="#cara-top-up">Syarat &amp; Ketentuan</a>
-      <a href="#cara-top-up">Kebijakan Refund</a>
-    </div>
-  </div>
-  <div class="container footer-bottom">
-    <span>© 2026 TheGadz Store. Semua hak dilindungi.</span>
-    <span>Harga dalam Rupiah. Pembayaran hanya via QRIS.</span>
   </div>
 </footer>
 

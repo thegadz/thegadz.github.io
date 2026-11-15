@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GadzStore — PRD v1 &amp; Design Artifact</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F8FC; --surface:#FFFFFF; --surface-2:#F1F3F9; --line:#E4E8F2;
+  --ink:#0F172A; --ink-2:#475569; --muted:#7C8AA0;
+  --primary:#5B4BE8; --primary-2:#7C6CFF; --primary-soft:#EEEBFF;
+  --accent:#06B6D4; --accent-soft:#E0FAFF;
+  --ok:#0E9F6E; --ok-soft:#E3F8F0;
+  --warn:#D97706; --warn-soft:#FEF3E2;
+  --danger:#DC2626; --danger-soft:#FEECEC;
+  --radius:16px; --radius-sm:10px;
+  --shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -12px rgba(15,23,42,.12);
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:0;max-width:1500px;margin:0 auto}
+/* ---------- sidebar ---------- */
+.side{position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 18px 40px;border-right:1px solid var(--line);background:var(--surface)}
+.side h1{font-size:16px;margin:0 0 2px;letter-spacing:-.02em}
+.side .sub{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:600;margin-bottom:22px}
+.side nav a{display:block;padding:7px 10px;border-radius:8px;color:var(--ink-2);text-decoration:none;font-size:13px;font-weight:500}
+.side nav a:hover{background:var(--primary-soft);color:var(--primary)}
+.side nav .grp{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:700;margin:18px 0 6px;padding-left:10px}
+/* ---------- main ---------- */
+main{padding:40px 48px 120px;min-width:0}
+.hero{background:linear-gradient(135deg,#0F172A 0%,#1E1B4B 55%,#312E81 100%);color:#fff;border-radius:24px;padding:38px 40px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(600px 200px at 85% 10%,rgba(124,108,255,.45),transparent 70%)}
+.hero>*{position:relative;z-index:1}
+.hero .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#A5B4FC;font-weight:700}
+.hero h2{font-size:34px;line-height:1.15;margin:10px 0 8px;letter-spacing:-.03em}
+.hero p{color:#CBD5E1;max-width:70ch;margin:0 0 20px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600}
+section{margin-top:52px;scroll-margin-top:24px}
+h3.sec{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--primary);font-weight:800;margin:0 0 4px}
+h2.sec{font-size:26px;letter-spacing:-.03em;margin:0 0 18px;line-height:1.25}
+h4{font-size:16px;margin:26px 0 10px}
+p.lead{color:var(--ink-2);font-size:15.5px;max-width:78ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1100px){.layout{grid-template-columns:1fr}.side{display:none}main{padding:24px 20px 80px}.g2,.g3,.g4{grid-template-columns:1fr}}
+/* ---------- tables ---------- */
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+th:first-child{border-radius:8px 0 0 0}th:last-child{border-radius:0 8px 0 0}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+td strong{color:var(--ink)}
+tr:last-child td{border-bottom:none}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+/* ---------- badges ---------- */
+.b{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.b-pri{background:var(--primary-soft);color:var(--primary)}
+.b-ok{background:var(--ok-soft);color:var(--ok)}
+.b-warn{background:var(--warn-soft);color:var(--warn)}
+.b-danger{background:var(--danger-soft);color:var(--danger)}
+.b-mute{background:var(--surface-2);color:var(--ink-2)}
+.b-acc{background:var(--accent-soft);color:#0E7490}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block}
+/* ---------- callouts ---------- */
+.callout{border-radius:var(--radius);padding:18px 20px;border:1px solid;display:flex;gap:14px;align-items:flex-start;margin:18px 0}
+.callout .ic{font-size:18px;line-height:1}
+.callout h5{margin:0 0 4px;font-size:14px}
+.callout p{margin:0;font-size:13.5px;color:var(--ink-2)}
+.callout.info{background:var(--primary-soft);border-color:#DCD6FF}.callout.info h5{color:var(--primary)}
+.callout.warn{background:var(--warn-soft);border-color:#FAE0BC}.callout.warn h5{color:var(--warn)}
+.callout.dang{background:var(--danger-soft);border-color:#FBD0D0}.callout.dang h5{color:var(--danger)}
+.callout.ok{background:var(--ok-soft);border-color:#C7EEDF}.callout.ok h5{color:var(--ok)}
+.callout.plain{background:var(--surface);border-color:var(--line)}.callout.plain h5{color:var(--ink)}
+/* ---------- colors ---------- */
+.sw{border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
+.sw .col{height:64px}
+.sw .meta{padding:10px 12px;font-size:12px}
+.sw .meta code{font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
+.sw .meta b{display:block;font-size:12.5px}
+/* ---------- checklist ---------- */
+.cl{list-style:none;padding:0;margin:0}
+.cl li{display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;color:var(--ink-2)}
+.cl li:last-child{border-bottom:none}
+.cl .box{flex:none;width:16px;height:16px;border:1.5px solid #C3CCDD;border-radius:4px;margin-top:3px}
+.cl li b{color:var(--ink)}
+/* ---------- phase ---------- */
+.phase{display:flex;gap:16px;padding:18px 0;border-bottom:1px solid var(--line)}
+.phase:last-child{border-bottom:none}
+.phase .n{flex:none;width:38px;height:38px;border-radius:12px;background:var(--primary-soft);color:var(--primary);font-weight:800;display:grid;place-items:center;font-size:14px}
+.phase h5{margin:0 0 2px;font-size:15px}
+.phase .goal{font-size:12.5px;color:var(--muted);margin:0 0 8px}
+/* ---------- phone mock ---------- */
+.phone{width:340px;background:#0F172A;border-radius:34px;padding:9px;box-shadow:0 24px 60px -20px rgba(15,23,42,.45);flex:none}
+.screen{background:var(--bg);border-radius:26px;overflow:hidden;height:660px;display:flex;flex-direction:column;position:relative}
+.sbar{height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:10px;font-weight:700;color:var(--ink-2);background:var(--surface)}
+.body{flex:1;overflow-y:auto;padding:12px 12px 0}
+.tabbar{height:58px;display:flex;background:var(--surface);border-top:1px solid var(--line)}
+.tabbar div{flex:1;display:grid;place-items:center;font-size:9.5px;font-weight:700;color:var(--muted);gap:2px}
+.tabbar div.on{color:var(--primary)}
+.mockrow{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+/* inner mock components */
+.m-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.m-logo{font-weight:800;font-size:15px;letter-spacing:-.02em;color:var(--ink)}
+.m-logo span{color:var(--primary)}
+.m-icon{width:28px;height:28px;border-radius:9px;background:var(--surface-2);display:grid;place-items:center;font-size:12px}
+.m-banner{border-radius:14px;overflow:hidden;position:relative;height:96px;background:linear-gradient(120deg,#5B4BE8,#06B6D4);display:flex;align-items:center;padding:0 14px;color:#fff}
+.m-banner b{display:block;font-size:14px;line-height:1.2}
+.m-banner small{font-size:9.5px;opacity:.9}
+.m-search{display:flex;align-items:center;gap:7px;background:var(--surface-2);border-radius:999px;padding:8px 12px;margin:12px 0;font-size:11px;color:var(--muted)}
+.m-h{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin:12px 0 8px;display:flex;justify-content:space-between}
+.m-h small{color:var(--primary);font-size:9.5px;text-transform:none;letter-spacing:0}
+.m-games{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.m-game{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:6px;text-align:center}
+.m-game .art{height:38px;border-radius:7px;margin-bottom:5px;background:linear-gradient(135deg,#C7D2FE,#A5F3FC);display:grid;place-items:center;font-size:14px}
+.m-game .nm{font-size:8.5px;font-weight:700;line-height:1.15;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-game .pr{font-size:8px;color:var(--muted)}
+.m-input{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:11px;color:var(--muted);margin-bottom:7px;display:flex;justify-content:space-between}
+.m-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:9px 0 4px}
+.m-btn{background:var(--primary);color:#fff;border-radius:11px;padding:12px;text-align:center;font-size:12px;font-weight:800;box-shadow:0 6px 16px -6px rgba(91,75,232,.6)}
+.m-btn.ghost{background:var(--surface);color:var(--primary);border:1.5px solid var(--primary);box-shadow:none}
+.m-btn.ok{background:var(--ok);box-shadow:0 6px 16px -6px rgba(14,159,110,.5)}
+.m-sku{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.m-sku .s{background:var(--surface);border:1.5px solid var(--line);border-radius:11px;padding:9px 10px;position:relative}
+.m-sku .s.on{border-color:var(--primary);background:var(--primary-soft)}
+.m-sku .s b{display:block;font-size:10.5px}
+.m-sku .s small{font-size:9.5px;color:var(--muted)}
+.m-sku .s .off{position:absolute;top:-6px;right:6px;background:var(--danger);color:#fff;font-size:7.5px;font-weight:800;padding:1px 5px;border-radius:4px}
+.m-pay{display:flex;align-items:center;gap:9px;background:var(--surface);border:1.5px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:6px;font-size:10.5px;font-weight:600}
+.m-pay.on{border-color:var(--primary);background:var(--primary-soft)}
+.m-pay .lg{width:26px;height:20px;border-radius:5px;display:grid;place-items:center;font-size:8px;font-weight:800;color:#fff;background:#334155}
+.m-nick{background:var(--ok-soft);border:1px solid #BFE8D8;border-radius:11px;padding:9px 11px;display:flex;gap:8px;align-items:center}
+.m-nick .av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#5B4BE8,#06B6D4);display:grid;place-items:center;color:#fff;font-size:10px;font-weight:800}
+.m-nick b{font-size:11px;display:block;line-height:1.2}
+.m-nick small{font-size:8.5px;color:var(--ok)}
+.m-warn{background:var(--danger-soft);border:1px solid #FBD0D0;border-radius:9px;padding:7px 9px;font-size:8.5px;color:#9F1239;line-height:1.35;font-weight:600}
+.m-qr{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.m-qr .code{width:110px;height:110px;margin:0 auto 8px;border-radius:8px;background:conic-gradient(from 0deg,#0F172A 0 25%,#fff 0 50%,#0F172A 0 75%,#fff 0);background-size:14px 14px;border:6px solid #fff;outline:1px solid var(--line)}
+.m-timer{display:inline-flex;align-items:center;gap:5px;background:var(--warn-soft);color:var(--warn);border-radius:999px;padding:3px 10px;font-family:var(--mono);font-size:11px;font-weight:700}
+.m-sticky{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px;box-shadow:0 -8px 20px -12px rgba(15,23,42,.25)}
+.m-timeline{display:flex;flex-direction:column;gap:0;margin:8px 0}
+.m-tl{display:flex;gap:9px;position:relative;padding-bottom:14px}
+.m-tl:last-child{padding-bottom:0}
+.m-tl .bul{width:14px;height:14px;border-radius:50%;background:var(--surface-2);border:2px solid #CBD5E1;flex:none;margin-top:2px;z-index:1}
+.m-tl.done .bul{background:var(--ok);border-color:var(--ok)}
+.m-tl.now .bul{background:var(--primary);border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.m-tl:not(:last-child)::before{content:"";position:absolute;left:6px;top:14px;bottom:0;width:2px;background:var(--line)}
+.m-tl b{font-size:10px;display:block;line-height:1.25}
+.m-tl small{font-size:8.5px;color:var(--muted)}
+.ann{font-family:var(--mono);font-size:10px;color:var(--primary);background:var(--primary-soft);padding:2px 6px;border-radius:5px}
+.annotations{display:flex;flex-direction:column;gap:8px;max-width:300px;font-size:12.5px;color:var(--ink-2)}
+.annotations div{display:flex;gap:8px}
+.annotations b{color:var(--ink);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="side">
+  <h1>GadzStore</h1>
+  <div class="sub">PRD v1 · artifact</div>
+  <nav>
+    <div class="grp">Konteks</div>
+    <a href="#ringkasan">1. Ringkasan &amp; tujuan</a>
+    <a href="#keputusan">2. Keputusan kamu</a>
+    <a href="#keberatan">3. Keberatan PM</a>
+    <a href="#scope">4. Scope in/out</a>
+    <div class="grp">Produk</div>
+    <a href="#cerita">5. User stories</a>
+    <a href="#ac">6. Acceptance criteria</a>
+    <div class="grp">Desain</div>
+    <a href="#warna">7. Palet warna</a>
+    <a href="#tipe">8. Tipografi &amp; komponen</a>
+    <a href="#wire">9. Wireframe per layar</a>
+    <a href="#mock">10. Mock UX interaktif</a>
+    <div class="grp">Sistem</div>
+    <a href="#alur">11. Diagram alur</a>
+    <a href="#arsitektur">12. Arsitektur &amp; biaya</a>
+    <a href="#data">13. Model data</a>
+    <a href="#tautan">14. Peta layar</a>
+    <div class="grp">Eksekusi</div>
+    <a href="#trap">15. Jebakan Junior PM</a>
+    <a href="#metrik">16. Metrik sukses</a>
+    <a href="#launch">17. Checklist launch</a>
+    <a href="#risiko">18. Risiko &amp; open Q</a>
+  </nav>
+</aside>
+<main>
+  <!-- HERO -->
+  <div class="hero">
+    <div class="eyebrow">One-Page PRD · v1 · untuk pembeli asli</div>
+    <h2>Top-up game lokal, checkout di bawah 60 detik.</h2>
+    <p>Storefront top-up game Indonesia dengan harga Rupiah, pembayaran lokal, konfirmasi nickname, dan invoice yang bisa dilacak tanpa akun. Target: pembeli asli bisa menyelesaikan pesanan dalam satu menit dan percaya bahwa ID-nya benar.</p>
+    <div class="chips">
+      <span class="chip">8 game × 6 SKU</span>
+      <span class="chip">Guest-only</span>
+      <span class="chip">Light marketplace</span>
+      <span class="chip">Cloudflare $0/mo</span>
+      <span class="chip">Checkout &lt; 60s</span>
+    </div>
+  </div>
+
+<!-- 1 RINGKASAN -->
+<section id="ringkasan">
+  <h3 class="sec">Bagian 1</h3>
+  <h2 class="sec">Ringkasan &amp; tujuan</h2>
+  <p class="lead">GadzStore v1 adalah <b>storefront top-up game Indonesia</b> untuk <b>pembeli asli</b> — bukan mockup untuk dipamerkan, tapi produk yang bisa dipakai orang untuk benar-benar memesan. Anggap ini validasi bisnis: apakah alur beli kita cukup cepat, jelas, dan dipercaya?</p>
+
+  <div class="grid g3" style="margin-top:18px">
+    <div class="card">
+      <span class="b b-pri">Tujuan #1</span>
+      <h4 style="margin-top:10px">Checkout di bawah 60 detik</h4>
+      <p style="font-size:13.5px;color:var(--ink-2);margin:0">Dari buka halaman sampai kode order keluar. Diukur di HP, pakai satu tangan. Ini metrik utama v1.</p>
+    </div>
+    <div class="card">
+      <span class="b b-pri">Tujuan #2</span>
+      <h4 style="margin-top:10px">Nol salah ID</h4>
+      <p style="font-size:13.5px;color:var(--ink-2);margin:0">Pembeli harus melihat nickname-nya sendiri sebelum bayar. Salah ID adalah keluhan #1 di usaha top-up mana pun.</p>
+    </div>
+    <div class="card">
+      <span class="b b-pri">Tujuan #3</span>
+      <h4 style="margin-top:10px">Bisa dilacak tanpa akun</h4>
+      <p style="font-size:13.5px;color:var(--ink-2);margin:0">Kode order + halaman Cek Order. Tanpa login, tanpa password, tanpa email.</p>
+    </div>
+  </div>
+
+  <div class="callout plain" style="margin-top:20px">
+    <div class="ic">🎯</div>
+    <div>
+      <h5>Bukan tujuan v1 (dan ini disengaja)</h5>
+      <p>Uang sungguhan, akun pengguna, refund otomatis, integrasi WhatsApp bot, multi-bahasa, stok terbatas. Semua itu menambah biaya dan risiko tanpa menambah bukti validasi. v1 membuktikan <b>alur dan kepercayaan</b> dulu.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 KEPUTUSAN -->
+<section id="keputusan">
+  <h3 class="sec">Bagian 2</h3>
+  <h2 class="sec">Keputusan kamu (dikunci)</h2>
+  <p class="lead">Delapan jawaban yang kamu berikan, ditulis ulang sebagai keputusan produk. Ini bagian yang tidak saya tawar lagi — PRD di bawah mengikuti ini.</p>
+
+  <div class="tw" style="margin-top:16px">
+  <table>
+    <thead><tr><th style="width:34px">#</th><th style="width:180px">Topik</th><th>Keputusan</th><th style="width:200px">Dampak ke build</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><strong>Momen "aha!"</strong></td><td><b>Checkout selesai &lt; 60 detik.</b> Bukan animasi, bukan banner — kecepatan.</td><td>Maks. 3 langkah, CTA sticky di bawah, SKU sekali tap</td></tr>
+      <tr><td>2</td><td><strong>Sinyal kepercayaan</strong></td><td>Wajib semua: <b>nickname</b>, <b>warning ID salah</b>, <b>invoice + kode order</b>, <b>badge kepercayaan</b>.</td><td>4 komponen di layar game &amp; invoice</td></tr>
+      <tr><td>3</td><td><strong>Bukti transaksi</strong></td><td><b>Simulasi notifikasi WA/email.</b></td><td><span class="b b-danger">Perlu penyesuaian</span> lihat §3</td></tr>
+      <tr><td>4</td><td><strong>Katalog</strong></td><td><b>8 game × 6 SKU = 48 SKU.</b></td><td>Seed data manual, 8 aset game</td></tr>
+      <tr><td>5</td><td><strong>Checkout</strong></td><td><b>Guest-only</b> + halaman <b>Cek Order by kode</b>. Tanpa akun.</td><td>1 halaman tambahan, tanpa tabel user</td></tr>
+      <tr><td>6</td><td><strong>Admin utama</strong></td><td><b>Lihat &amp; filter daftar order</b> jadi layar utama admin.</td><td>Tabel + filter status + pencarian kode</td></tr>
+      <tr><td>7</td><td><strong>Order terbengkalai</strong></td><td><b>Biarkan Pending</b>, admin bersihkan manual.</td><td><span class="b b-warn">Perlu penjaga</span> lihat §3</td></tr>
+      <tr><td>8</td><td><strong>Visual</strong></td><td><b>Light marketplace bersih</b>, aksen ungu + cyan.</td><td>Palet di §7</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- 3 KEBERATAN -->
+<section id="keberatan">
+  <h3 class="sec">Bagian 3</h3>
+  <h2 class="sec">Dua keberatan PM (kamu yang putuskan)</h2>
+  <p class="lead">Saya setuju dengan 6 dari 8 keputusan. Dua ini berisiko terhadap <b>pembeli asli</b>, jadi saya tulis apa adanya beserta usulan komprominya.</p>
+
+  <div class="callout dang">
+    <div class="ic">⚠️</div>
+    <div>
+      <h5>Keberatan 1 — "Simulasi notifikasi WA/email"</h5>
+      <p>Pembeli asli akan <b>menunggu pesan yang tidak pernah datang</b>, lalu menghubungi CS dengan marah. Ini justru merusak kepercayaan yang jadi tujuan #2 kita. Kalau ada yang screenshots lalu ditunjukkan ke orang lain, klaimnya juga tidak jujur.</p>
+      <p style="margin-top:8px"><b>Usulan kompromi (rekomendasi saya):</b> tombol <b>"Kirim invoice ke WhatsApp saya"</b> — membuka <code style="font-family:var(--mono);font-size:12px">wa.me</code> dengan teks invoice sudah terisi (kode order, game, nominal, total). Terasa seperti notifikasi, tapi jujur: pembeli sendiri yang mengirim. Biaya build: ~0. Kalau kamu tetap mau simulasi penuh, wajib berlabel <b>"DEMO — notifikasi tidak benar-benar dikirim"</b> di setiap titik.</p>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <div class="ic">⏱️</div>
+    <div>
+      <h5>Keberatan 2 — "Order Pending dibiarkan, admin bersihkan manual"</h5>
+      <p>Tanpa auto-expire, invoice dengan QRIS yang sudah kedaluwarsa tetap tampil "menunggu pembayaran". Pembeli asli bisa memindai QR mati, uang tidak masuk, dan mereka menyalahkan kita.</p>
+      <p style="margin-top:8px"><b>Usulan kompromi (rekomendasi saya):</b> status di database tetap <code style="font-family:var(--mono);font-size:12px">pending</code> sesuai keputusanmu, tapi <b>tampilan invoice berubah jadi "Kedaluwarsa" begitu timer 15 menit habis</b>. Nol otomasi server, nol cron, tapi pembeli tidak pernah menyesatkan. Admin tetap bisa membersihkan kapan saja.</p>
+    </div>
+  </div>
+
+  <div class="callout ok">
+    <div class="ic">✓</div>
+    <div>
+      <h5>Catatan badge kepercayaan</h5>
+      <p>Badge yang saya sarankan: <b>"Top-up instan 24/7"</b>, <b>"Pembayaran lewat QRIS &amp; e-wallet"</b>, <b>"Cek status kapan saja dengan kode order"</b>. Saya <b>tidak</b> memakai "50.000+ transaksi" atau "sejak 2021" — angka palsu mudah terbongkar oleh pembeli asli dan merusak tujuan #2.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 SCOPE -->
+<section id="scope">
+  <h3 class="sec">Bagian 4</h3>
+  <h2 class="sec">Scope: masuk vs keluar</h2>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card" style="border-color:#C7EEDF">
+      <h4 style="margin-top:0;color:var(--ok)">✓ Masuk v1</h4>
+      <ul class="cl">
+        <li><span class="box"></span><b>Home</b> — banner, 8 game, pencarian, trust strip</li>
+        <li><span class="box"></span><b>Halaman game</b> — art, rating, ID + Zone, Verify ID</li>
+        <li><span class="box"></span><b>Checkout</b> — 6 SKU, metode bayar + biaya admin terpisah</li>
+        <li><span class="box"></span><b>Invoice</b> — kode order, QRIS, timer 15 menit, tombol simulasi bayar</li>
+        <li><span class="box"></span><b>Cek Order</b> — lacak by kode, timeline status</li>
+        <li><span class="box"></span><b>Admin /admin</b> — password, tabel order + filter, ubah status, edit harga/SKU, upload banner</li>
+        <li><span class="box"></span><b>Seed data</b> — 8 game, 48 SKU, 5 metode bayar</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:#FBD0D0">
+      <h4 style="margin-top:0;color:var(--danger)">✗ Keluar dari v1</h4>
+      <ul class="cl">
+        <li><span class="box"></span>Login / akun / password reset</li>
+        <li><span class="box"></span>Payment gateway sungguhan (Midtrans/Xendit — butuh KYC)</li>
+        <li><span class="box"></span>WhatsApp bot, email transaksional</li>
+        <li><span class="box"></span>Refund, retry bayar, kode promo bertumpuk</li>
+        <li><span class="box"></span>Stok terbatas, wishlist, ulasan, multi-bahasa</li>
+        <li><span class="box"></span>Auto-expire order (keputusanmu — pakai penjaga tampilan)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 5 USER STORIES -->
+<section id="cerita">
+  <h3 class="sec">Bagian 5</h3>
+  <h2 class="sec">User stories</h2>
+  <p class="lead">Dua aktor: <b>Pembeli</b> (tanpa akun) dan <b>Admin</b> (satu password). Setiap cerita punya ID untuk dirujuk di checklist launch.</p>
+
+  <div class="tw" style="margin-top:16px">
+  <table>
+    <thead><tr><th style="width:64px">ID</th><th style="width:90px">Prioritas</th><th style="width:360px">Cerita</th><th>Supaya</th></tr></thead>
+    <tbody>
+      <tr><td><b>US-01</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai pembeli, saya ingin <b>melihat game populer di beranda</b> tanpa scroll jauh.</td><td>Saya menemukan game saya dalam &lt; 5 detik.</td></tr>
+      <tr><td><b>US-02</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai pembeli, saya ingin <b>mencari game dengan nama</b> (mis. "free").</td><td>Saya tidak perlu menggulir 8 kartu.</td></tr>
+      <tr><td><b>US-03</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai pembeli, saya ingin <b>memasukkan ID &amp; Zone lalu menekan Verify ID</b>.</td><td>Saya yakin data akun saya benar sebelum bayar.</td></tr>
+      <tr><td><b>US-04</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai pembeli, saya ingin <b>melihat nickname saya muncul setelah verifikasi</b>.</td><td>Terhindar dari top-up ke akun orang lain.</td></tr>
+      <tr><td><b>US-05</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai pembeli, saya ingin <b>melihat peringatan bahwa top-up ke ID salah tidak bisa direfund</b>.</td><td>Saya sadar risikonya dan memeriksa ulang.</td></tr>
+      <tr><td><b>US-06</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai pembeli, saya ingin <b>memilih nominal dengan satu tap</b> dan langsung melihat harga Rupiah.</td><td>Checkout tetap di bawah 60 detik.</td></tr>
+      <tr><td><b>US-07</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai pembeli, saya ingin <b>memilih metode bayar dan melihat biaya admin terpisah</b> dari harga SKU.</td><td>Tidak ada biaya kejutan.</td></tr>
+      <tr><td><b>US-08</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai pembeli, saya ingin <b>mendapat kode order dan invoice</b> setelah menekan Bayar.</td><td>Saya punya bukti pesanan.</td></tr>
+      <tr><td><b>US-09</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai pembeli, saya ingin <b>melihat QRIS + hitung mundur 15 menit</b> di invoice.</td><td>Saya tahu harus bayar sebelum kedaluwarsa.</td></tr>
+      <tr><td><b>US-10</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai pembeli, saya ingin <b>melacak status order dengan kode</b> lewat halaman Cek Order.</td><td>Saya tidak perlu menghubungi CS untuk hal dasar.</td></tr>
+      <tr><td><b>US-11</b></td><td><span class="b b-warn">Should</span></td><td>Sebagai pembeli, saya ingin <b>mengirim detail invoice ke WhatsApp saya</b> dengan satu tombol.</td><td>Pesan tersimpan di riwayat chat saya.</td></tr>
+      <tr><td><b>US-12</b></td><td><span class="b b-warn">Should</span></td><td>Sebagai pembeli, saya ingin <b>invoice berubah jadi "Kedaluwarsa"</b> saat timer habis.</td><td>Saya tidak memindai QR yang sudah mati.</td></tr>
+      <tr><td><b>US-13</b></td><td><span class="b b-warn">Should</span></td><td>Sebagai pembeli, saya ingin <b>melihat badge kepercayaan yang jujur</b>.</td><td>Saya berani memasukkan data akun game saya.</td></tr>
+      <tr><td><b>US-14</b></td><td><span class="b b-warn">Should</span></td><td>Sebagai pembeli demo, saya ingin <b>tombol simulasi pembayaran yang jelas</b>.</td><td>Saya bisa melihat status berubah jadi Lunas.</td></tr>
+      <tr><td><b>US-15</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai admin, saya ingin <b>masuk dengan satu password</b>.</td><td>Data order tidak bisa diubah orang lain.</td></tr>
+      <tr><td><b>US-16</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai admin, saya ingin <b>melihat daftar order dan memfilternya per status</b>.</td><td>Saya tahu ada pesanan apa hari ini.</td></tr>
+      <tr><td><b>US-17</b></td><td><span class="b b-pri">Must</span></td><td>Sebagai admin, saya ingin <b>mengubah status order</b> (Pending → Paid → Completed).</td><td>Pesanan bisa diselesaikan walaupun bayar masih manual.</td></tr>
+      <tr><td><b>US-18</b></td><td><span class="b b-warn">Should</span></td><td>Sebagai admin, saya ingin <b>mengubah harga SKU dan menandai diskon</b>.</td><td>Harga bisa disesuaikan tanpa deploy ulang.</td></tr>
+      <tr><td><b>US-19</b></td><td><span class="b b-warn">Should</span></td><td>Sebagai admin, saya ingin <b>mengunggah banner</b> ke R2.</td><td>Beranda terlihat terkelola.</td></tr>
+      <tr><td><b>US-20</b></td><td><span class="b b-mute">Nice</span></td><td>Sebagai admin, saya ingin <b>melihat jumlah order per status</b> di atas tabel.</td><td>Sekilas tahu kondisi toko.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- 6 ACCEPTANCE -->
+<section id="ac">
+  <h3 class="sec">Bagian 6</h3>
+  <h2 class="sec">Acceptance criteria</h2>
+  <p class="lead">Ditulis sebagai perilaku yang bisa dicek mata dan bisa dites otomatis. Format: <b>Given → When → Then</b>.</p>
+
+  <h4>A. Verifikasi ID (US-03, US-04, US-05)</h4>
+  <div class="tw"><table>
+    <thead><tr><th style="width:210px">Skenario</th><th>Diterima bila</th></tr></thead>
+    <tbody>
+      <tr><td><b>ID kosong</b></td><td>Tombol Verify ID <b>disabled</b> (warna abu); tidak ada request ke server.</td></tr>
+      <tr><td><b>ID bukan angka</b></td><td>Error inline <i>"Player ID hanya angka"</i> di bawah input, border input merah.</td></tr>
+      <tr><td><b>ID terlalu pendek</b> (&lt; 6 digit)</td><td>Error inline <i>"Player ID minimal 6 digit"</i>. Tombol tetap disabled.</td></tr>
+      <tr><td><b>Game butuh Zone</b> (MLBB, Genshin)</td><td>Field Zone wajib tampil; kalau kosong → <i>"Zone ID wajib diisi"</i>.</td></tr>
+      <tr><td><b>Verifikasi berhasil</b></td><td>Dalam &lt; 1,5 detik tampil kartu berisi <b>avatar inisial, nickname, dan "Akun ditemukan"</b>. Tombol berubah jadi <b>"Ganti ID"</b>.</td></tr>
+      <tr><td><b>Verifikasi gagal (simulasi)</b></td><td>Kartu merah <i>"Akun tidak ditemukan. Periksa ID &amp; Zone kamu."</i> + tombol <b>Coba lagi</b>. CTA Bayar tetap terkunci.</td></tr>
+      <tr><td><b>Mengubah ID setelah verifikasi</b></td><td>Nickname lama <b>hilang</b>, CTA Bayar terkunci lagi sampai verifikasi ulang. Wajib — mencegah bayar dengan ID baru tanpa cek.</td></tr>
+      <tr><td><b>Peringatan ID salah</b></td><td>Muncul tepat di atas CTA Bayar, tidak bisa di-dismiss: <i>"Pastikan ID &amp; nickname benar. Top-up ke ID salah tidak dapat direfund."</i></td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>B. Checkout &amp; harga (US-06, US-07)</h4>
+  <div class="tw"><table>
+    <thead><tr><th style="width:210px">Skenario</th><th>Diterima bila</th></tr></thead>
+    <tbody>
+      <tr><td><b>Belum pilih SKU</b></td><td>CTA disabled; teks CTA <b>"Pilih nominal dulu"</b>.</td></tr>
+      <tr><td><b>Pilih SKU</b></td><td>Satu tap memilih; SKU sebelumnya otomatis lepas. Ringkasan bawah update &lt; 100ms.</td></tr>
+      <tr><td><b>Biaya admin</b></td><td>Rincian selalu terpisah 3 baris: <b>Harga item</b>, <b>Biaya admin</b>, <b>Total</b>. QRIS Rp0 · GoPay/OVO/DANA/ShopeePay Rp1.500 · VA Rp2.500.</td></tr>
+      <tr><td><b>Diskon</b></td><td>Harga asli dicoret + badge <b>-10%</b>; total pakai harga diskon. Tidak ada kode promo di v1.</td></tr>
+      <tr><td><b>Harga dihitung server</b></td><td>Total di invoice <b>harus sama</b> dengan hitung server. Perubahan harga dari client ditolak (400).</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>C. Invoice &amp; status (US-08 s/d US-12)</h4>
+  <div class="tw"><table>
+    <thead><tr><th style="width:210px">Skenario</th><th>Diterima bila</th></tr></thead>
+    <tbody>
+      <tr><td><b>Order dibuat</b></td><td>Kode <code style="font-family:var(--mono)">GB-YYMMDD-XXXX</code>, URL invoice bisa dibuka ulang tanpa login, status <span class="b b-warn"><span class="dot"></span>PENDING</span>.</td></tr>
+      <tr><td><b>Timer</b></td><td>Hitung mundur dari 15:00, format <code style="font-family:var(--mono)">mm:ss</code>, tetap akurat setelah refresh (dihitung dari <code style="font-family:var(--mono)">expires_at</code>).</td></tr>
+      <tr><td><b>Timer &lt; 3 menit</b></td><td>Pill timer kekuningan dan berdenyut halus (tanpa suara).</td></tr>
+      <tr><td><b>Timer habis</b></td><td>Blok QRIS jadi abu-abu + label <b>"Kedaluwarsa"</b>; tombol simulasi bayar disabled. Status DB tetap <code style="font-family:var(--mono)">pending</code>.</td></tr>
+      <tr><td><b>Simulasi bayar</b></td><td>Setelah diklik: status jadi <span class="b b-ok"><span class="dot"></span>PAID</span>, timeline bergerak, tombol hilang, muncul <b>"Lihat status pesanan"</b>.</td></tr>
+      <tr><td><b>Cek Order</b></td><td>Kode salah → <i>"Kode order tidak ditemukan"</i> (bukan halaman kosong). Kode benar → timeline 3 langkah, data akun game, total.</td></tr>
+      <tr><td><b>Kirim ke WhatsApp</b></td><td>Membuka <code style="font-family:var(--mono)">wa.me</code> dengan pesan terisi: kode order, game, SKU, ID/Zone, total. Tidak ada pengiriman otomatis dari server.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>D. Admin (US-15 s/d US-20)</h4>
+  <div class="tw"><table>
+    <thead><tr><th style="width:210px">Skenario</th><th>Diterima bila</th></tr></thead>
+    <tbody>
+      <tr><td><b>Akses tanpa login</b></td><td><code style="font-family:var(--mono)">/admin</code> menampilkan form password; tidak ada data order di HTML awal.</td></tr>
+      <tr><td><b>Password salah 5×</b></td><td>Ditolak dengan jeda bertambah (rate limit); tidak ada petunjuk password.</td></tr>
+      <tr><td><b>Filter status</b></td><td>Tab Semua / Pending / Paid / Completed / Cancelled + pencarian kode. Hasil &lt; 500ms.</td></tr>
+      <tr><td><b>Ubah status</b></td><td>Hanya transisi valid: Pending→Paid→Completed, plus Cancel dari Pending. Tombol tidak valid tidak tampil.</td></tr>
+      <tr><td><b>Edit harga</b></td><td>Tersimpan ke D1, langsung terlihat di storefront setelah refresh; harga tidak boleh ≤ 0.</td></tr>
+      <tr><td><b>Upload banner</b></td><td>Hanya JPG/PNG/WebP, maks 2MB; file masuk R2, beranda memakai URL baru.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout info">
+    <div class="ic">📐</div>
+    <div>
+      <h5>Batas keras v1</h5>
+      <p>Maksimal <b>3 langkah</b> dari halaman game ke invoice. Maksimal <b>2 input</b> sebelum bayar (ID + Zone). Tidak ada perpindahan halaman di dalam checkout. Kalau sebuah fitur menambah langkah atau layar, fitur itu tidak masuk v1.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7 WARNA -->
+<section id="warna">
+  <h3 class="sec">Bagian 7</h3>
+  <h2 class="sec">Palet warna</h2>
+  <p class="lead">Arah visual: <b>light marketplace bersih</b> — permukaan putih, abu lembut, satu warna brand ungu, dan cyan hanya sebagai aksen. Aturan: warna dipakai untuk <b>status dan aksi</b>, bukan hiasan. Kalau sebuah warna tidak memberi tahu pembeli apa pun, hapus.</p>
+
+  <h4>Warna inti</h4>
+  <div class="grid g4" style="margin-top:10px">
+    <div class="sw"><div class="col" style="background:#5B4BE8"></div><div class="meta"><b>Primary / brand</b><code>#5B4BE8</code><br>CTA utama, link aktif, tab aktif</div></div>
+    <div class="sw"><div class="col" style="background:#7C6CFF"></div><div class="meta"><b>Primary light</b><code>#7C6CFF</code><br>Gradient CTA, hover</div></div>
+    <div class="sw"><div class="col" style="background:#06B6D4"></div><div class="meta"><b>Accent cyan</b><code>#06B6D4</code><br>Hanya gradient banner &amp; badge "Instant"</div></div>
+    <div class="sw"><div class="col" style="background:#0F172A"></div><div class="meta"><b>Ink</b><code>#0F172A</code><br>Teks utama, judul</div></div>
+    <div class="sw"><div class="col" style="background:#475569"></div><div class="meta"><b>Ink secondary</b><code>#475569</code><br>Teks body, label</div></div>
+    <div class="sw"><div class="col" style="background:#7C8AA0"></div><div class="meta"><b>Muted</b><code>#7C8AA0</code><br>Placeholder, harga skunder</div></div>
+    <div class="sw"><div class="col" style="background:#E4E8F2"></div><div class="meta"><b>Line</b><code>#E4E8F2</code><br>Border, pemisah</div></div>
+    <div class="sw"><div class="col" style="background:#F7F8FC"></div><div class="meta"><b>Background</b><code>#F7F8FC</code><br>Latar halaman</div></div>
+  </div>
+
+  <h4>Warna status (satu arti, satu warna)</h4>
+  <div class="grid g4" style="margin-top:10px">
+    <div class="sw"><div class="col" style="background:#0E9F6E"></div><div class="meta"><b>Success / Lunas</b><code>#0E9F6E</code><br>Nickname ditemukan, PAID, COMPLETED</div></div>
+    <div class="sw"><div class="col" style="background:#D97706"></div><div class="meta"><b>Warning / Menunggu</b><code>#D97706</code><br>PENDING, timer &lt; 3 menit</div></div>
+    <div class="sw"><div class="col" style="background:#DC2626"></div><div class="meta"><b>Danger</b><code>#DC2626</code><br>ID salah, CANCELLED, error input</div></div>
+    <div class="sw"><div class="col" style="background:#64748B"></div><div class="meta"><b>Neutral</b><code>#64748B</code><br>EXPIRED, tombol disabled</div></div>
+  </div>
+
+  <div class="callout warn" style="margin-top:20px">
+    <div class="ic">🎨</div>
+    <div>
+      <h5>Kontras &amp; aksesibilitas</h5>
+      <p>Semua teks body pakai <b>#475569 di atas #FFFFFF</b> (rasio 7.4:1). Label kecil tidak boleh di bawah <b>#7C8AA0</b> (4.6:1). Tombol primary selalu teks putih di atas #5B4BE8 (4.9:1). Warna status tidak pernah jadi satu-satunya pembeda — selalu ada teks atau ikon.</p>
+    </div>
+  </div>
+
+  <h4>Pemakaian warna per layar</h4>
+  <div class="tw"><table>
+    <thead><tr><th style="width:170px">Layar</th><th>Warna dominan</th><th>Catatan</th></tr></thead>
+    <tbody>
+      <tr><td><b>Home</b></td><td>Putih + banner gradient ungu→cyan</td><td>Satu-satunya tempat gradient besar dipakai. Kartu game putih.</td></tr>
+      <tr><td><b>Halaman game</b></td><td>Putih, aksen ungu saat SKU dipilih</td><td>Hijau hanya untuk kartu nickname. Merah hanya peringatan ID.</td></tr>
+      <tr><td><b>Checkout</b></td><td>Ungu (CTA), abu (ringkasan)</td><td>Baris total ditebalkan, tidak diberi warna.</td></tr>
+      <tr><td><b>Invoice</b></td><td>Kuning (timer), hijau (lunas)</td><td>QRIS hitam-putih apa adanya, jangan diberi tint.</td></tr>
+      <tr><td><b>Cek Order</b></td><td>Netral + warna status timeline</td><td>Status yang sudah lewat = hijau; sekarang = ungu; belum = abu.</td></tr>
+      <tr><td><b>Admin</b></td><td>Abu terang, badge status berwarna</td><td>Admin tidak butuh brand; butuh kepadatan dan keterbacaan.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 8 TIPOGRAFI -->
+<section id="tipe">
+  <h3 class="sec">Bagian 8</h3>
+  <h2 class="sec">Tipografi &amp; komponen</h2>
+  <p class="lead">Satu keluarga font (<b>Plus Jakarta Sans</b>), satu font angka (<b>JetBrains Mono</b>) untuk kode order, ID, dan timer supaya tidak salah baca.</p>
+
+  <div class="grid g2">
+    <div class="card">
+      <h4 style="margin-top:0">Skala huruf</h4>
+      <div class="tw" style="border:none">
+        <table>
+          <thead><tr><th>Token</th><th>Ukuran / berat</th><th>Dipakai untuk</th></tr></thead>
+          <tbody>
+            <tr><td><code style="font-family:var(--mono)">h1</code></td><td>28px / 800</td><td>Judul halaman game</td></tr>
+            <tr><td><code style="font-family:var(--mono)">h2</code></td><td>20px / 700</td><td>Judul seksi ("Pilih nominal")</td></tr>
+            <tr><td><code style="font-family:var(--mono)">body</code></td><td>15px / 500</td><td>Teks isi, label</td></tr>
+            <tr><td><code style="font-family:var(--mono)">small</code></td><td>13px / 500</td><td>Keterangan, harga sekunder</td></tr>
+            <tr><td><code style="font-family:var(--mono)">label</code></td><td>11px / 700 · letterspacing .08em</td><td>Label input, header tabel</td></tr>
+            <tr><td><code style="font-family:var(--mono)">mono</code></td><td>15px / 600 JetBrains</td><td>Kode order, ID, timer</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0">Spesifikasi komponen</h4>
+      <ul class="cl">
+        <li><span class="box"></span><b>Tombol primary</b> — tinggi 48px, radius 12px, teks 15px/800, shadow ungu lembut. Satu per layar.</li>
+        <li><span class="box"></span><b>Tombol secondary</b> — outline ungu, latar putih, tinggi 44px.</li>
+        <li><span class="box"></span><b>Input</b> — tinggi 48px, radius 10px, border #E4E8F2, focus ring ungu 2px.</li>
+        <li><span class="box"></span><b>Kartu SKU</b> — radius 12px, padding 12px, border 1.5px; terpilih = border ungu + latar ungu muda.</li>
+        <li><span class="box"></span><b>Baris metode bayar</b> — ikon 26×20, nama, biaya admin rata kanan.</li>
+        <li><span class="box"></span><b>Badge status</b> — pill radius 999, teks 11px/700, titik 6px di kiri.</li>
+        <li><span class="box"></span><b>CTA sticky</b> — menempel di bawah, latar putih, garis atas, padding 12px.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout ok">
+    <div class="ic">📏</div>
+    <div>
+      <h5>Aturan sentuhan (target jempol)</h5>
+      <p>Semua elemen yang bisa ditekan minimal <b>44×44px</b>. CTA utama selalu di <b>zona jempol bawah</b>, tidak pernah di atas lipatan. Jarak antar tombol minimal 8px supaya tidak salah tap. Form ID + Zone: input pertama auto-focus dan keyboard angka langsung terbuka (<code style="font-family:var(--mono)">inputmode="numeric"</code>).</p>
+    </div>
+  </div>
+</section>
+
+<!-- 9 WIREFRAME -->
+<section id="wire">
+  <h3 class="sec">Bagian 9</h3>
+  <h2 class="sec">Wireframe per layar</h2>
+  <p class="lead">Catatan tata letak per layar, urutan dari atas ke bawah (mobile-first, 390px). Angka di kurung = prioritas visual (1 paling menonjol). Layar yang punya mock interaktif penuh ada di §10.</p>
+
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card">
+      <span class="b b-pri">LAYAR 1 · HOME</span>
+      <h4>Siapa kamu, mau main apa</h4>
+      <table style="margin-top:8px">
+        <tbody>
+          <tr><td style="width:34px"><b>(1)</b></td><td><b>Top bar</b> — logo GadzStore kiri, tombol "Cek Order" kanan (ikon + teks, 12px).</td></tr>
+          <tr><td><b>(2)</b></td><td><b>Trust strip</b> — 3 badge horizontal: "Instan 24/7", "QRIS &amp; e-wallet", "Lacak dengan kode". Teks 11px, tanpa gambar berat.</td></tr>
+          <tr><td><b>(3)</b></td><td><b>Banner</b> — satu kartu gradient ungu→cyan, tinggi ~96px, teks promo + CTA kecil. Bisa diganti admin lewat R2.</td></tr>
+          <tr><td><b>(4)</b></td><td><b>Pencarian</b> — kotak bulat, placeholder "Cari game…". Filter instan saat mengetik.</td></tr>
+          <tr><td><b>(5)</b></td><td><b>Grid game</b> — 3 kolom × 3 baris (8 game). Kartu: art, nama 1 baris, "mulai Rp…". Tap → halaman game.</td></tr>
+          <tr><td><b>(6)</b></td><td><b>Footer mini</b> — "Butuh bantuan? WhatsApp CS" + disclaimer "Situs demo".</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px;color:var(--muted);margin:12px 0 0"><b>Yang sengaja tidak ada:</b> carousel auto-play, pop-up promo saat masuk, 5 banner bertumpuk, footer panjang berisi link mati.</p>
+    </div>
+
+    <div class="card">
+      <span class="b b-pri">LAYAR 2 · GAME + VERIFY</span>
+      <h4>Layar paling penting di toko ini</h4>
+      <table style="margin-top:8px">
+        <tbody>
+          <tr><td style="width:34px"><b>(1)</b></td><td><b>Header game</b> — art 56×56, nama game, rating kecil, latar kartu putih.</td></tr>
+          <tr><td><b>(2)</b></td><td><b>Input Player ID</b> — label jelas, hint "Ada di profil game kamu", keyboard angka.</td></tr>
+          <tr><td><b>(3)</b></td><td><b>Input Zone</b> — hanya muncul untuk game yang butuh (MLBB, Genshin).</td></tr>
+          <tr><td><b>(4)</b></td><td><b>Tombol Verify ID</b> — full width, disabled sampai ID valid.</td></tr>
+          <tr><td><b>(5)</b></td><td><b>Kartu nickname</b> — hijau, avatar inisial, nama, "Akun ditemukan ✓". Menggantikan area input setelah sukses, dengan link "Ganti ID".</td></tr>
+          <tr><td><b>(6)</b></td><td><b>Sisa langkah</b> — setelah verify: "Nominal" grid 2 kolom, lalu "Metode bayar". Tersembunyi sebelum verify supaya pembeli tidak melompati konfirmasi.</td></tr>
+          <tr><td><b>(7)</b></td><td><b>Warning ID salah</b> — bar merah tipis tepat di atas CTA.</td></tr>
+          <tr><td><b>(8)</b></td><td><b>CTA sticky</b> — "Bayar RpX" + total, selalu terlihat.</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px;color:var(--muted);margin:12px 0 0"><b>Kunci UX:</b> nominal &amp; metode bayar baru muncul setelah nickname terkonfirmasi. Satu arah, tidak bisa dilewati.</p>
+    </div>
+
+    <div class="card">
+      <span class="b b-pri">LAYAR 3 · INVOICE / QRIS</span>
+      <h4>Tempat pembeli kehilangan kepercayaan</h4>
+      <table style="margin-top:8px">
+        <tbody>
+          <tr><td style="width:34px"><b>(1)</b></td><td><b>Status badge</b> besar: "Menunggu pembayaran" (kuning) + timer mono 15:00.</td></tr>
+          <tr><td><b>(2)</b></td><td><b>Kode order</b> — mono, besar, dengan ikon salin. Ini identitas pesanan.</td></tr>
+          <tr><td><b>(3)</b></td><td><b>QRIS</b> — QR hitam-putih asli, label "QRIS (demo)".</td></tr>
+          <tr><td><b>(4)</b></td><td><b>Rincian</b> — game, SKU, ID/Zone, nickname, harga item, biaya admin, total.</td></tr>
+          <tr><td><b>(5)</b></td><td><b>Aksi</b> — "Simulasi sudah bayar" (outline), "Kirim invoice ke WhatsApp saya".</td></tr>
+          <tr><td><b>(6)</b></td><td><b>Setelah lunas</b> — QR hilang, diganti timeline 3 langkah + tombol "Lihat status pesanan".</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px;color:var(--muted);margin:12px 0 0"><b>Setelah 15 menit:</b> blok QR jadi abu-abu berlabel "Kedaluwarsa", tombol bayar mati, muncul "Buat pesanan baru".</p>
+    </div>
+
+    <div class="card">
+      <span class="b b-pri">LAYAR 4 · CEK ORDER</span>
+      <h4>Pengganti akun</h4>
+      <table style="margin-top:8px">
+        <tbody>
+          <tr><td style="width:34px"><b>(1)</b></td><td><b>Input kode order</b> — mono, auto-uppercase, format hint <code style="font-family:var(--mono)">GB-YYMMDD-XXXX</code>.</td></tr>
+          <tr><td><b>(2)</b></td><td><b>Hasil</b> — kartu status + timeline vertikal 3 langkah (Dibuat → Dibayar → Selesai).</td></tr>
+          <tr><td><b>(3)</b></td><td><b>Ringkasan pesanan</b> — game, SKU, nickname, total, waktu dibuat.</td></tr>
+          <tr><td><b>(4)</b></td><td><b>Bantuan</b> — "Kode tidak ditemukan? Hubungi CS" dengan link wa.me berisi kode yang diketik.</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px;color:var(--muted);margin:12px 0 0"><b>Sengaja tanpa akun</b> — halaman ini harus jalan dari link yang dibagikan orang lain, tanpa sesi.</p>
+    </div>
+
+    <div class="card">
+      <span class="b b-pri">LAYAR 5 · ADMIN</span>
+      <h4>Meja kerja, bukan dashboard cantik</h4>
+      <table style="margin-top:8px">
+        <tbody>
+          <tr><td style="width:34px"><b>(1)</b></td><td><b>Login</b> — satu kolom password, satu tombol. Tidak ada "lupa password".</td></tr>
+          <tr><td><b>(2)</b></td><td><b>Kartu hitung</b> — 4 angka: Pending, Paid, Completed, Cancelled hari ini.</td></tr>
+          <tr><td><b>(3)</b></td><td><b>Tab filter</b> — Semua / Pending / Paid / Completed / Cancelled + kolom cari kode.</td></tr>
+          <tr><td><b>(4)</b></td><td><b>Tabel order</b> — kode, waktu, game, SKU, nickname, total, status badge, aksi.</td></tr>
+          <tr><td><b>(5)</b></td><td><b>Aksi baris</b> — hanya transisi valid: "Tandai Lunas", "Tandai Selesai", "Batalkan".</td></tr>
+          <tr><td><b>(6)</b></td><td><b>Panel lain</b> — Edit harga SKU, Upload banner. Dua tab, bukan halaman baru.</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px;color:var(--muted);margin:12px 0 0"><b>Prioritas mobile:</b> admin sering buka dari HP — tabel jadi kartu bertumpuk di bawah 640px.</p>
+    </div>
+
+    <div class="card" style="background:var(--surface-2)">
+      <span class="b b-mute">CATATAN LINTAS LAYAR</span>
+      <h4>Aturan yang berlaku di semua layar</h4>
+      <ul class="cl">
+        <li><span class="box"></span>Kode order selalu bisa <b>disalin</b> dengan satu tap.</li>
+        <li><span class="box"></span>Harga selalu berformat <code style="font-family:var(--mono)">Rp64.000</code> — titik ribuan, tanpa desimal.</li>
+        <li><span class="box"></span>Tidak ada modal/pop-up. Semua konfirmasi inline atau layar penuh.</li>
+        <li><span class="box"></span>Setiap layar punya jalan keluar jelas (back atau "Cek Order").</li>
+        <li><span class="box"></span>Loading state &gt; 500ms wajib skeleton, bukan spinner kosong.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 10 MOCK UX -->
+<section id="mock">
+  <h3 class="sec">Bagian 10</h3>
+  <h2 class="sec">Mock UX interaktif</h2>
+  <p class="lead">Enam layar digambar dalam ukuran asli HP (390×844). Ini bukan screenshot — ini spesifikasi visual yang bisa dibaca developer sambil menulis markup. Komponen di sini memakai kelas yang sama dengan CSS artifact, jadi bisa dipakai langsung sebagai referensi.</p>
+
+  <div class="mockrow" style="margin-top:22px">
+
+    <!-- MOCK 1: HOME -->
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="sbar"><span>9:41</span><span>▮▮▮ ᯤ ▰</span></div>
+        <div class="body">
+          <div class="m-top">
+            <div class="m-logo">Gadz<span>Store</span></div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <div class="m-icon">🔍</div>
+              <div class="m-icon" style="width:auto;padding:0 9px;font-size:9.5px;font-weight:700;color:var(--primary)">Cek Order</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap">
+            <span style="font-size:8px;font-weight:700;background:var(--ok-soft);color:var(--ok);padding:3px 7px;border-radius:999px">⚡ Instan 24/7</span>
+            <span style="font-size:8px;font-weight:700;background:var(--primary-soft);color:var(--primary);padding:3px 7px;border-radius:999px">QRIS &amp; e-wallet</span>
+            <span style="font-size:8px;font-weight:700;background:var(--accent-soft);color:#0E7490;padding:3px 7px;border-radius:999px">🔎 Lacak dengan kode</span>
+          </div>
+
+          <div class="m-banner">
+            <div>
+              <b>Diskon 10%<br>semua diamond</b>
+              <small>Berlaku sampai Minggu ini</small>
+            </div>
+          </div>
+
+          <div class="m-search">🔍 Cari game…</div>
+
+          <div class="m-h">Game populer <small>8 game</small></div>
+          <div class="m-games">
+            <div class="m-game"><div class="art">🎯</div><div class="nm">Mobile Legends</div><div class="pr">Rp 5.000</div></div>
+            <div class="m-game"><div class="art">🔥</div><div class="nm">Free Fire</div><div class="pr">Rp 6.000</div></div>
+            <div class="m-game"><div class="art">⚔️</div><div class="nm">PUBG Mobile</div><div class="pr">Rp 15.000</div></div>
+            <div class="m-game"><div class="art">💎</div><div class="nm">Genshin</div><div class="pr">Rp 16.000</div></div>
+            <div class="m-game"><div class="art">🏆</div><div class="nm">CODM</div><div class="pr">Rp 10.000</div></div>
+            <div class="m-game"><div class="art">🎮</div><div class="nm">Valorant</div><div class="pr">Rp 12.000</div></div>
+            <div class="m-game"><div class="art">🚀</div><div class="nm">Honor of Kings</div><div class="pr">Rp 8.000</div></div>
+            <div class="m-game"><div class="art">🃏</div><div class="nm">Clash Royale</div><div class="pr">Rp 14.000</div></div>
+            <div class="m-game" style="border-style:dashed;display:grid;place-items:center;color:var(--muted);font-size:8.5px;font-weight:700">Segera<br>hadir</div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="on">🏠<br>Beranda</div>
+          <div>🔎<br>Cek Order</div>
+          <div>💬<br>Bantuan</div>
+        </div>
+      </div></div>
+      <div class="annotations" style="margin-top:14px">
+        <div><b>1.</b><span>Trust strip di <i>atas</i> banner — badge jujur, bukan angka palsu.</span></div>
+        <div><b>2.</b><span>"Cek Order" selalu terlihat di top bar, karena tidak ada akun.</span></div>
+        <div><b>3.</b><span>Grid 3 kolom supaya 8 game muat tanpa scroll.</span></div>
+        <div><b>4.</b><span>Harga "mulai Rp" di kartu: harapan biaya dari detik pertama.</span></div>
+      </div>
+    </div>
+
+    <!-- MOCK 2: GAME + VERIFY -->
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="sbar"><span>9:42</span><span>▮▮▮ ᯤ ▰</span></div>
+        <div class="body">
+          <div class="m-top">
+            <div class="m-icon">‹</div>
+            <div class="m-icon">⋯</div>
+          </div>
+
+          <div style="display:flex;gap:9px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px;margin-bottom:12px">
+            <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#C7D2FE,#A5F3FC);display:grid;place-items:center;font-size:18px">🎯</div>
+            <div>
+              <b style="font-size:12px;display:block;line-height:1.2">Mobile Legends</b>
+              <small style="font-size:9px;color:var(--muted)">⭐ 4.9 · 6 nominal tersedia</small>
+            </div>
+          </div>
+
+          <div class="m-label">1 · Masukkan data akun</div>
+          <div class="m-input"><span>Player ID</span><span style="color:var(--ink);font-family:var(--mono);font-weight:600">12345</span></div>
+          <div style="font-size:8px;color:var(--danger);font-weight:700;margin:-3px 0 6px 2px">Player ID minimal 6 digit</div>
+          <div class="m-input"><span>Zone ID</span><span style="color:var(--muted)">contoh: 1234</span></div>
+
+          <div class="m-btn ghost" style="margin-top:8px">Verify ID</div>
+
+          <div class="m-label" style="margin-top:14px">2 · Konfirmasi akun</div>
+          <div class="m-nick">
+            <div class="av">GZ</div>
+            <div style="flex:1">
+              <b>GadzSniper99</b>
+              <small>Akun ditemukan ✓</small>
+            </div>
+            <span style="font-size:8.5px;font-weight:700;color:var(--primary)">Ganti</span>
+          </div>
+
+          <div class="m-label" style="margin-top:14px">3 · Pilih nominal</div>
+          <div class="m-sku">
+            <div class="s"><b>5 💎</b><small>Rp 5.000</small></div>
+            <div class="s on"><span class="off">-10%</span><b>86 💎</b><small style="text-decoration:line-through">Rp 25.000</small><small>Rp 22.500</small></div>
+            <div class="s"><b>172 💎</b><small>Rp 49.000</small></div>
+            <div class="s"><b>257 💎</b><small>Rp 72.000</small></div>
+          </div>
+
+          <div class="m-label" style="margin-top:14px">4 · Metode bayar</div>
+          <div class="m-pay on"><span class="lg" style="background:#E11D48">QR</span><span style="flex:1">QRIS</span><small style="color:var(--ok);font-weight:800">Rp 0</small></div>
+          <div class="m-pay"><span class="lg" style="background:#0EA5E9">OVO</span><span style="flex:1">OVO</span><small style="color:var(--muted)">+ Rp 1.500</small></div>
+          <div class="m-warn" style="margin-top:12px">⚠️ Pastikan ID &amp; nickname benar. Top-up ke ID salah tidak dapat direfund.</div>
+          <div style="height:70px"></div>
+        </div>
+        <div class="m-sticky">
+          <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted);margin-bottom:6px">
+            <span>86 💎 · QRIS</span><span style="color:var(--ok);font-weight:700">+Rp 0 admin</span>
+          </div>
+          <div class="m-btn">Bayar Rp 22.500</div>
+        </div>
+      </div></div>
+      <div class="annotations" style="margin-top:14px">
+        <div><b>1.</b><span>Error inline muncul saat mengetik, bukan setelah submit.</span></div>
+        <div><b>2.</b><span>Nominal &amp; metode bayar <i>hanya</i> muncul setelah nickname terverifikasi.</span></div>
+        <div><b>3.</b><span>CTA sticky di zona jempol — total selalu terlihat.</span></div>
+        <div><b>4.</b><span>Warning merah tepat di atas CTA, tidak bisa ditutup.</span></div>
+        <div><b>5.</b><span>Biaya admin tertulis "+Rp 0" — pembeli tahu tidak ada biaya kejutan.</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="mockrow" style="margin-top:34px">
+
+    <!-- MOCK 3: INVOICE / QRIS -->
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="sbar"><span>9:44</span><span>▮▮▮ ᯤ ▰</span></div>
+        <div class="body">
+          <div class="m-top">
+            <div class="m-icon">‹</div>
+            <div style="font-size:10px;font-weight:700;color:var(--ink-2)">Invoice</div>
+            <div class="m-icon">⋯</div>
+          </div>
+
+          <div style="background:var(--warn-soft);border:1px solid #FAE0BC;border-radius:12px;padding:10px 12px;margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <b style="font-size:11.5px;color:var(--warn);display:block">Menunggu pembayaran</b>
+                <small style="font-size:9px;color:var(--ink-2)">Selesaikan sebelum timer habis</small>
+              </div>
+              <span class="m-timer">⏱ 14:32</span>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <small style="font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700">Kode order</small>
+              <div class="ann" style="margin-top:3px;font-size:11px">GB-261115-4K2P</div>
+            </div>
+            <span style="font-size:9px;font-weight:700;color:var(--primary)">Salin</span>
+          </div>
+
+          <div class="m-qr">
+            <div class="code"></div>
+            <b style="font-size:10.5px;display:block">Scan dengan aplikasi bank / e-wallet</b>
+            <small style="font-size:8.5px;color:var(--muted)">QRIS (demo) · tidak menerima uang sungguhan</small>
+          </div>
+
+          <div class="m-label" style="margin-top:12px">Rincian pesanan</div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:10px">
+            <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">Game</span><b>Mobile Legends</b></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">Item</span><b>86 💎</b></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">ID / Zone</span><b style="font-family:var(--mono)">123456789 · 1234</b></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">Nickname</span><b style="color:var(--ok)">GadzSniper99 ✓</b></div>
+            <div style="height:1px;background:var(--line);margin:6px 0"></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">Harga item</span><b>Rp 22.500</b></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">Biaya admin</span><b>Rp 0</b></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0 0"><b style="font-size:11.5px">Total</b><b style="font-size:11.5px;color:var(--primary)">Rp 22.500</b></div>
+          </div>
+
+          <div style="display:flex;gap:7px;margin-top:10px">
+            <div class="m-btn ghost" style="flex:1;padding:10px;font-size:10px">Simulasi sudah bayar</div>
+            <div class="m-btn ok" style="flex:1;padding:10px;font-size:10px">💬 Kirim ke WA</div>
+          </div>
+          <div style="height:20px"></div>
+        </div>
+      </div></div>
+      <div class="annotations" style="margin-top:14px">
+        <div><b>1.</b><span>Status + timer dalam satu blok kuning — pembeli langsung tahu ada tenggat.</span></div>
+        <div><b>2.</b><span>Kode order pakai mono supaya tidak salah baca 0/O.</span></div>
+        <div><b>3.</b><span>"QRIS (demo)" tertulis jujur di bawah QR.</span></div>
+        <div><b>4.</b><span>Rincian 3 baris terpisah: item, admin, total.</span></div>
+        <div><b>5.</b><span>"Kirim ke WA" = tombol <code>wa.me</code>, bukan notifikasi palsu.</span></div>
+      </div>
+    </div>
+
+    <!-- MOCK 4: INVOICE LUNAS -->
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="sbar"><span>9:46</span><span>▮▮▮ ᯤ ▰</span></div>
+        <div class="body">
+          <div class="m-top">
+            <div class="m-icon">‹</div>
+            <div style="font-size:10px;font-weight:700;color:var(--ink-2)">Invoice</div>
+            <div class="m-icon">⋯</div>
+          </div>
+
+          <div style="background:var(--ok-soft);border:1px solid #BFE8D8;border-radius:12px;padding:12px;margin-bottom:10px;text-align:center">
+            <div style="width:34px;height:34px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;margin:0 auto 6px;font-size:16px">✓</div>
+            <b style="font-size:12px;color:var(--ok);display:block">Pembayaran diterima</b>
+            <small style="font-size:9px;color:var(--ink-2)">Pesanan sedang diproses admin</small>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <small style="font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700">Kode order</small>
+              <div class="ann" style="margin-top:3px;font-size:11px">GB-261115-4K2P</div>
+            </div>
+            <span style="font-size:9px;font-weight:700;color:var(--primary)">Salin</span>
+          </div>
+
+          <div class="m-label">Status pesanan</div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px">
+            <div class="m-timeline">
+              <div class="m-tl done"><div class="bul"></div><div><b>Pesanan dibuat</b><small>09:44 · kode GB-261115-4K2P</small></div></div>
+              <div class="m-tl done"><div class="bul"></div><div><b>Pembayaran diterima</b><small>09:46 · QRIS</small></div></div>
+              <div class="m-tl now"><div class="bul"></div><div><b>Sedang diproses</b><small>Estimasi &lt; 5 menit</small></div></div>
+              <div class="m-tl"><div class="bul"></div><div><b>Diamond masuk</b><small>Belum</small></div></div>
+            </div>
+          </div>
+
+          <div class="m-label" style="margin-top:12px">Dikirim ke</div>
+          <div class="m-nick">
+            <div class="av">GZ</div>
+            <div style="flex:1"><b>GadzSniper99</b><small style="color:var(--muted)">ID 123456789 · Zone 1234</small></div>
+          </div>
+
+          <div style="background:var(--surface-2);border-radius:10px;padding:9px 11px;margin-top:12px;font-size:9px;color:var(--ink-2);line-height:1.45">
+            <b style="display:block;margin-bottom:2px">Simpan bukti ini</b>
+            Screenshot halaman ini atau kirim ke WhatsApp kamu. Cek status kapan saja dengan kode order di atas.
+          </div>
+
+          <div class="m-btn ghost" style="margin-top:10px;padding:10px;font-size:10.5px">Lihat status pesanan</div>
+          <div style="height:20px"></div>
+        </div>
+      </div></div>
+      <div class="annotations" style="margin-top:14px">
+        <div><b>1.</b><span>Status lunas mengubah <i>seluruh</i> isi layar — tidak ada QR mati yang tersisa.</span></div>
+        <div><b>2.</b><span>Timeline 4 langkah termasuk "Diamond masuk" supaya ekspektasi jelas.</span></div>
+        <div><b>3.</b><span>Nickname diulang di sini — konfirmasi terakhir sebelum admin memproses.</span></div>
+        <div><b>4.</b><span>Instruksi simpan bukti menggantikan notifikasi palsu.</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="mockrow" style="margin-top:34px">
+
+    <!-- MOCK 5: CEK ORDER -->
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="sbar"><span>10:12</span><span>▮▮▮ ᯤ ▰</span></div>
+        <div class="body">
+          <div class="m-top">
+            <div class="m-icon">‹</div>
+            <div style="font-size:10px;font-weight:700;color:var(--ink-2)">Cek Order</div>
+            <div class="m-icon">💬</div>
+          </div>
+
+          <div style="text-align:center;margin:8px 0 14px">
+            <b style="font-size:13px;display:block">Lacak pesanan kamu</b>
+            <small style="font-size:9.5px;color:var(--muted)">Tanpa akun. Cukup kode order.</small>
+          </div>
+
+          <div class="m-label">Kode order</div>
+          <div class="m-input" style="border-color:var(--primary);background:var(--primary-soft)">
+            <span style="font-family:var(--mono);font-weight:700;color:var(--primary)">GB-261115-4K2P</span>
+            <span style="color:var(--muted)">✕</span>
+          </div>
+          <div class="m-btn" style="margin-top:7px;padding:10px;font-size:11px">Lacak pesanan</div>
+
+          <div class="m-label" style="margin-top:16px">Hasil</div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+              <b style="font-size:11px">Mobile Legends</b>
+              <span class="b b-warn" style="font-size:8.5px;padding:2px 7px"><span class="dot"></span>PENDING</span>
+            </div>
+            <div class="m-timeline">
+              <div class="m-tl done"><div class="bul"></div><div><b>Pesanan dibuat</b><small>15 Nov 2026 · 09:44</small></div></div>
+              <div class="m-tl"><div class="bul"></div><div><b>Pembayaran</b><small>Menunggu</small></div></div>
+              <div class="m-tl"><div class="bul"></div><div><b>Diamond masuk</b><small>Belum</small></div></div>
+            </div>
+            <div style="height:1px;background:var(--line);margin:8px 0"></div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;padding:2px 0"><span style="color:var(--muted)">Item</span><b>86 💎</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;padding:2px 0"><span style="color:var(--muted)">Akun</span><b>GadzSniper99</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;padding:2px 0"><span style="color:var(--muted)">Total</span><b style="color:var(--primary)">Rp 22.500</b></div>
+          </div>
+
+          <div class="m-btn ghost" style="margin-top:9px;padding:9px;font-size:10px">Buka invoice &amp; QRIS</div>
+
+          <div style="text-align:center;font-size:8.5px;color:var(--muted);margin-top:12px;line-height:1.5">
+            Kode tidak ditemukan?<br><b style="color:var(--primary)">Hubungi CS via WhatsApp</b>
+          </div>
+          <div style="height:20px"></div>
+        </div>
+      </div></div>
+      <div class="annotations" style="margin-top:14px">
+        <div><b>1.</b><span>Semua di satu layar: input, hasil, dan bantuan. Tidak ada navigasi tambahan.</span></div>
+        <div><b>2.</b><span>Badge status sama persis dengan yang dipakai admin — satu bahasa.</span></div>
+        <div><b>3.</b><span>Kalau pending, tombol "Buka invoice" membawa kembali ke QRIS.</span></div>
+        <div><b>4.</b><span>Link CS membawa kode order yang diketik, jadi tidak perlu ditanyakan lagi.</span></div>
+      </div>
+    </div>
+
+    <!-- MOCK 6: ADMIN -->
+    <div>
+      <div class="phone" style="width:400px"><div class="screen" style="height:660px">
+        <div class="sbar"><span>10:20</span><span>ADMIN · gadzstore.workers.dev</span></div>
+        <div class="body" style="padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <b style="font-size:12px">Order hari ini</b>
+            <span style="font-size:8.5px;font-weight:700;color:var(--danger)">Keluar</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+            <div style="background:var(--warn-soft);border-radius:9px;padding:7px 8px"><b style="font-size:14px;color:var(--warn);display:block;line-height:1">3</b><small style="font-size:7.5px;color:var(--ink-2)">Pending</small></div>
+            <div style="background:var(--primary-soft);border-radius:9px;padding:7px 8px"><b style="font-size:14px;color:var(--primary);display:block;line-height:1">2</b><small style="font-size:7.5px;color:var(--ink-2)">Paid</small></div>
+            <div style="background:var(--ok-soft);border-radius:9px;padding:7px 8px"><b style="font-size:14px;color:var(--ok);display:block;line-height:1">7</b><small style="font-size:7.5px;color:var(--ink-2)">Selesai</small></div>
+            <div style="background:var(--surface-2);border-radius:9px;padding:7px 8px"><b style="font-size:14px;color:var(--ink-2);display:block;line-height:1">1</b><small style="font-size:7.5px;color:var(--ink-2)">Batal</small></div>
+          </div>
+
+          <div style="display:flex;gap:4px;margin-bottom:8px;font-size:8px;font-weight:700">
+            <span style="background:var(--ink);color:#fff;padding:4px 8px;border-radius:999px">Semua</span>
+            <span style="background:var(--surface-2);color:var(--ink-2);padding:4px 8px;border-radius:999px">Pending 3</span>
+            <span style="background:var(--surface-2);color:var(--ink-2);padding:4px 8px;border-radius:999px">Paid</span>
+            <span style="background:var(--surface-2);color:var(--ink-2);padding:4px 8px;border-radius:999px">Selesai</span>
+          </div>
+          <div class="m-search" style="margin:0 0 9px;padding:6px 10px;font-size:9px">🔍 Cari kode order…</div>
+
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span class="ann" style="font-size:8.5px">GB-261115-4K2P</span>
+                <span class="b b-warn" style="font-size:7.5px;padding:2px 6px"><span class="dot"></span>PENDING</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:8.5px;color:var(--ink-2)">
+                <span>MLBB · 86 💎 · <b style="color:var(--ink)">GadzSniper99</b></span><b>Rp 22.500</b>
+              </div>
+              <div style="display:flex;gap:4px;margin-top:6px">
+                <span style="font-size:7.5px;font-weight:800;background:var(--ok);color:#fff;padding:3px 7px;border-radius:5px">Tandai Lunas</span>
+                <span style="font-size:7.5px;font-weight:800;background:var(--surface-2);color:var(--ink-2);padding:3px 7px;border-radius:5px">Batalkan</span>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span class="ann" style="font-size:8.5px">GB-261115-9XZ3</span>
+                <span class="b b-pri" style="font-size:7.5px;padding:2px 6px"><span class="dot"></span>PAID</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:8.5px;color:var(--ink-2)">
+                <span>Free Fire · 355 💎 · <b style="color:var(--ink)">Reyy</b></span><b>Rp 48.000</b>
+              </div>
+              <div style="display:flex;gap:4px;margin-top:6px">
+                <span style="font-size:7.5px;font-weight:800;background:var(--primary);color:#fff;padding:3px 7px;border-radius:5px">Tandai Selesai</span>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span class="ann" style="font-size:8.5px">GB-261114-7QW1</span>
+                <span class="b b-ok" style="font-size:7.5px;padding:2px 6px"><span class="dot"></span>SELESAI</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:8.5px;color:var(--ink-2)">
+                <span>Genshin · 60 GC · <b style="color:var(--ink)">Kazuha</b></span><b>Rp 16.000</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <div class="annotations" style="margin-top:14px">
+        <div><b>1.</b><span>Angka per status di atas tabel — sekilas tahu beban kerja hari ini.</span></div>
+        <div><b>2.</b><span>Tombol aksi hanya yang valid: Pending punya Lunas/Batal, Paid punya Selesai.</span></div>
+        <div><b>3.</b><span>Nickname ikut tampil — admin bisa cek ID sebelum memproses.</span></div>
+        <div><b>4.</b><span>Tabel jadi kartu di layar sempit; admin sering buka dari HP.</span></div>
+        <div><b>5.</b><span>Total pakai angka tebal di kanan, tidak perlu dibaca dari kiri.</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout info" style="margin-top:30px">
+    <div class="ic">🧪</div>
+    <div>
+      <h5>Cara memakai mock ini di review</h5>
+      <p>Uji 3 hal dengan orang lain di HP: (1) bisakah mereka menemukan nickname mereka sendiri dalam 20 detik? (2) bisakah mereka menyebut total yang harus dibayar tanpa scroll? (3) bisakah mereka menemukan kode order lagi setelah menutup browser? Kalau salah satu gagal, perbaiki mock sebelum menulis kode.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 11 ALUR -->
+<section id="alur">
+  <h3 class="sec">Bagian 11</h3>
+  <h2 class="sec">Diagram alur</h2>
+  <p class="lead">Tiga diagram yang menentukan build: perjalanan pembeli (dengan batas 60 detik), state machine order, dan alur admin.</p>
+
+  <h4>11.1 Perjalanan pembeli — target 60 detik</h4>
+  <div class="card" style="margin-top:10px;overflow-x:auto">
+    <div style="display:flex;align-items:stretch;gap:0;min-width:900px">
+      <div style="flex:1;text-align:center;padding:14px 10px">
+        <div style="width:34px;height:34px;border-radius:10px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;margin:0 auto 8px;font-weight:800;font-size:12px">1</div>
+        <b style="font-size:12.5px;display:block">Buka beranda</b>
+        <small style="font-size:11px;color:var(--muted)">0–5s</small>
+        <div style="font-size:11px;color:var(--ink-2);margin-top:6px">Tap kartu game</div>
+      </div>
+      <div style="display:grid;place-items:center;color:#C3CCDD;font-size:18px">→</div>
+      <div style="flex:1;text-align:center;padding:14px 10px">
+        <div style="width:34px;height:34px;border-radius:10px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;margin:0 auto 8px;font-weight:800;font-size:12px">2</div>
+        <b style="font-size:12.5px;display:block">Isi ID + Zone</b>
+        <small style="font-size:11px;color:var(--muted)">5–20s</small>
+        <div style="font-size:11px;color:var(--ink-2);margin-top:6px">Tap Verify ID</div>
+      </div>
+      <div style="display:grid;place-items:center;color:#C3CCDD;font-size:18px">→</div>
+      <div style="flex:1;text-align:center;padding:14px 10px;background:var(--ok-soft);border-radius:12px">
+        <div style="width:34px;height:34px;border-radius:10px;background:var(--ok);color:#fff;display:grid;place-items:center;margin:0 auto 8px;font-weight:800;font-size:12px">✓</div>
+        <b style="font-size:12.5px;display:block">Nickname muncul</b>
+        <small style="font-size:11px;color:var(--ok)">20–25s</small>
+        <div style="font-size:11px;color:var(--ink-2);margin-top:6px">Momen percaya</div>
+      </div>
+      <div style="display:grid;place-items:center;color:#C3CCDD;font-size:18px">→</div>
+      <div style="flex:1;text-align:center;padding:14px 10px">
+        <div style="width:34px;height:34px;border-radius:10px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;margin:0 auto 8px;font-weight:800;font-size:12px">3</div>
+        <b style="font-size:12.5px;display:block">Pilih nominal</b>
+        <small style="font-size:11px;color:var(--muted)">25–35s</small>
+        <div style="font-size:11px;color:var(--ink-2);margin-top:6px">1 tap</div>
+      </div>
+      <div style="display:grid;place-items:center;color:#C3CCDD;font-size:18px">→</div>
+      <div style="flex:1;text-align:center;padding:14px 10px">
+        <div style="width:34px;height:34px;border-radius:10px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;margin:0 auto 8px;font-weight:800;font-size:12px">4</div>
+        <b style="font-size:12.5px;display:block">Pilih bayar</b>
+        <small style="font-size:11px;color:var(--muted)">35–45s</small>
+        <div style="font-size:11px;color:var(--ink-2);margin-top:6px">1 tap</div>
+      </div>
+      <div style="display:grid;place-items:center;color:#C3CCDD;font-size:18px">→</div>
+      <div style="flex:1;text-align:center;padding:14px 10px;background:var(--primary-soft);border-radius:12px">
+        <div style="width:34px;height:34px;border-radius:10px;background:var(--primary);color:#fff;display:grid;place-items:center;margin:0 auto 8px;font-weight:800;font-size:12px">5</div>
+        <b style="font-size:12.5px;display:block">Kode order keluar</b>
+        <small style="font-size:11px;color:var(--primary)">45–55s</small>
+        <div style="font-size:11px;color:var(--ink-2);margin-top:6px">Invoice + QRIS</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--ink-2)">
+      <b style="color:var(--ink)">Hanya 3 layar</b> · Beranda → Game → Invoice. Tidak ada halaman keranjang, tidak ada halaman konfirmasi terpisah. Biaya admin muncul di langkah 4, sebelum uang keluar.
+    </div>
+  </div>
+
+  <h4>11.2 State machine order</h4>
+  <div class="card" style="margin-top:10px;overflow-x:auto">
+    <div style="display:flex;align-items:center;gap:10px;min-width:760px;padding:8px 0">
+      <div style="flex:none;text-align:center">
+        <div style="border:2px solid var(--warn);background:var(--warn-soft);border-radius:14px;padding:12px 18px">
+          <b style="font-size:13px;color:var(--warn)">PENDING</b>
+          <small style="display:block;font-size:10px;color:var(--ink-2)">order dibuat</small>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">DB: <code style="font-family:var(--mono)">pending</code></div>
+      </div>
+      <div style="flex:none;text-align:center;color:var(--ink-2)">
+        <div style="font-size:10.5px;font-weight:700">bayar</div>
+        <div style="font-size:18px;color:#C3CCDD">──▶</div>
+        <div style="font-size:9.5px;color:var(--muted)">admin / simulasi</div>
+      </div>
+      <div style="flex:none;text-align:center">
+        <div style="border:2px solid var(--primary);background:var(--primary-soft);border-radius:14px;padding:12px 18px">
+          <b style="font-size:13px;color:var(--primary)">PAID</b>
+          <small style="display:block;font-size:10px;color:var(--ink-2)">uang diterima</small>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">DB: <code style="font-family:var(--mono)">paid</code></div>
+      </div>
+      <div style="flex:none;text-align:center;color:var(--ink-2)">
+        <div style="font-size:10.5px;font-weight:700">diamond masuk</div>
+        <div style="font-size:18px;color:#C3CCDD">──▶</div>
+        <div style="font-size:9.5px;color:var(--muted)">admin</div>
+      </div>
+      <div style="flex:none;text-align:center">
+        <div style="border:2px solid var(--ok);background:var(--ok-soft);border-radius:14px;padding:12px 18px">
+          <b style="font-size:13px;color:var(--ok)">COMPLETED</b>
+          <small style="display:block;font-size:10px;color:var(--ink-2)">selesai</small>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">DB: <code style="font-family:var(--mono)">completed</code></div>
+      </div>
+      <div style="flex:1;text-align:right">
+        <div style="border:2px dashed #C3CCDD;border-radius:14px;padding:10px 14px;display:inline-block">
+          <b style="font-size:12px;color:var(--ink-2)">CANCELLED</b>
+          <small style="display:block;font-size:9.5px;color:var(--muted)">dari PENDING saja · manual admin</small>
+        </div>
+      </div>
+    </div>
+    <div class="callout warn" style="margin:14px 0 0">
+      <div class="ic">⏱️</div>
+      <div>
+        <h5>Jalur tampilan, bukan jalur data</h5>
+        <p>Timer 15 menit habis → <b>tampilan invoice jadi "Kedaluwarsa"</b>, tetapi status DB tetap <code style="font-family:var(--mono)">pending</code>. Admin tetap membersihkan manual. Tidak ada cron, tidak ada auto-cancel. Ini kompromi yang menjaga keputusanmu tanpa menyesatkan pembeli.</p>
+      </div>
+    </div>
+  </div>
+
+  <h4>11.3 Alur admin</h4>
+  <div class="card" style="margin-top:10px;overflow-x:auto">
+    <div style="min-width:700px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="flex:1;min-width:150px;background:var(--surface-2);border-radius:10px;padding:11px 13px">
+          <b style="font-size:12px;display:block;margin-bottom:3px">1 · Buka /admin</b>
+          <small style="font-size:11px;color:var(--ink-2)">Masukkan password</small>
+        </div>
+        <div style="flex:1;min-width:150px;background:var(--surface-2);border-radius:10px;padding:11px 13px">
+          <b style="font-size:12px;display:block;margin-bottom:3px">2 · Lihat hitungan</b>
+          <small style="font-size:11px;color:var(--ink-2)">Pending / Paid / Selesai / Batal</small>
+        </div>
+        <div style="flex:1;min-width:150px;background:var(--surface-2);border-radius:10px;padding:11px 13px">
+          <b style="font-size:12px;display:block;margin-bottom:3px">3 · Filter / cari</b>
+          <small style="font-size:11px;color:var(--ink-2)">Tab status atau kode order</small>
+        </div>
+        <div style="flex:1;min-width:150px;background:var(--surface-2);border-radius:10px;padding:11px 13px">
+          <b style="font-size:12px;display:block;margin-bottom:3px">4 · Cocokkan bukti</b>
+          <small style="font-size:11px;color:var(--ink-2)">Cek mutasi QRIS dengan kode</small>
+        </div>
+        <div style="flex:1;min-width:150px;background:var(--primary-soft);border-radius:10px;padding:11px 13px">
+          <b style="font-size:12px;display:block;margin-bottom:3px;color:var(--primary)">5 · Tandai Lunas</b>
+          <small style="font-size:11px;color:var(--ink-2)">Status + waktu tercatat</small>
+        </div>
+        <div style="flex:1;min-width:150px;background:var(--ok-soft);border-radius:10px;padding:11px 13px">
+          <b style="font-size:12px;display:block;margin-bottom:3px;color:var(--ok)">6 · Tandai Selesai</b>
+          <small style="font-size:11px;color:var(--ink-2)">Setelah top-up masuk</small>
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:var(--ink-2);padding-top:10px;border-top:1px dashed var(--line)">
+        <b style="color:var(--ink)">Tugas harian nyata:</b> bersihkan order <code style="font-family:var(--mono)">pending</code> yang lebih dari 1 hari (tombol Batalkan), dan pastikan tidak ada order <code style="font-family:var(--mono)">paid</code> yang menginap lebih dari 30 menit — itu tanda top-up belum dikirim ke pembeli.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 ARSITEKTUR -->
+<section id="arsitektur">
+  <h3 class="sec">Bagian 12</h3>
+  <h2 class="sec">Arsitektur &amp; biaya</h2>
+  <p class="lead">Semua di satu platform yang punya tier gratis nyata: <b>Cloudflare</b>. Satu Worker = satu deploy. Tidak ada server yang menyala 24 jam, tidak ada database yang menagih per jam.</p>
+
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card">
+      <h4 style="margin-top:0">Tumpukan teknologi</h4>
+      <div class="tw" style="border:none">
+        <table>
+          <thead><tr><th style="width:110px">Lapisan</th><th>Pilihan</th><th>Kenapa ini</th></tr></thead>
+          <tbody>
+            <tr><td><b>Aplikasi</b></td><td>SvelteKit + <code style="font-family:var(--mono)">adapter-cloudflare</code></td><td>SSR ringan, satu Worker, form action bawaan — tanpa perlu API terpisah.</td></tr>
+            <tr><td><b>Hosting</b></td><td>Cloudflare Workers</td><td>100k request/hari gratis. Domain <code style="font-family:var(--mono)">*.workers.dev</code> = Rp0.</td></tr>
+            <tr><td><b>Database</b></td><td>Cloudflare D1 (SQLite)</td><td>5 juta baris dibaca/hari gratis. Cukup untuk ratusan order.</td></tr>
+            <tr><td><b>File</b></td><td>Cloudflare R2</td><td>10 GB gratis, tanpa biaya egress. Hanya untuk banner + art game.</td></tr>
+            <tr><td><b>Sesi admin</b></td><td>Cookie HttpOnly bertanda tangan</td><td>Tidak butuh tabel sesi. Satu password di secret Worker.</td></tr>
+            <tr><td><b>Styling</b></td><td>CSS biasa + token dari §7</td><td>Tanpa framework CSS, tanpa purge config, bundle kecil.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0">Route map v1</h4>
+      <div class="tw" style="border:none">
+        <table>
+          <thead><tr><th style="width:180px">Route</th><th>Isi</th></tr></thead>
+          <tbody>
+            <tr><td><code style="font-family:var(--mono)">/</code></td><td>Home: banner, trust strip, grid 8 game</td></tr>
+            <tr><td><code style="font-family:var(--mono)">/game/[slug]</code></td><td>Verify ID, nominal, metode bayar, CTA</td></tr>
+            <tr><td><code style="font-family:var(--mono)">POST /game/[slug]</code></td><td>Buat order → redirect ke invoice</td></tr>
+            <tr><td><code style="font-family:var(--mono)">/invoice/[code]</code></td><td>Kode order, QRIS, timer, rincian</td></tr>
+            <tr><td><code style="font-family:var(--mono)">/invoice/[code]/demo-pay</code></td><td>Simulasi bayar (POST)</td></tr>
+            <tr><td><code style="font-family:var(--mono)">/cek</code></td><td>Form cek order (guest)</td></tr>
+            <tr><td><code style="font-family:var(--mono)">/admin</code></td><td>Login + kartu hitung + tabel order</td></tr>
+            <tr><td><code style="font-family:var(--mono)">/admin/sku</code></td><td>Edit harga SKU</td></tr>
+            <tr><td><code style="font-family:var(--mono)">/api/verify-id</code></td><td>POST simulasi cek akun (1,5s delay buatan)</td></tr>
+            <tr><td><code style="font-family:var(--mono)">/api/health</code></td><td>Ping untuk uptime check</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <h4>Diagram alur request</h4>
+  <div class="card" style="margin-top:10px;overflow-x:auto">
+    <div style="display:flex;align-items:center;gap:8px;min-width:820px;padding:6px 0;font-size:12px">
+      <div style="flex:1;background:var(--surface-2);border-radius:10px;padding:10px 12px;text-align:center">
+        <b style="display:block">📱 Browser</b><small style="font-size:10.5px;color:var(--ink-2)">HTML + CSS + 1 file JS</small>
+      </div>
+      <div style="color:#C3CCDD;font-size:16px">→</div>
+      <div style="flex:1.3;background:var(--primary-soft);border:1.5px solid var(--primary);border-radius:10px;padding:10px 12px;text-align:center">
+        <b style="display:block;color:var(--primary)">⚙️ Worker (SvelteKit)</b><small style="font-size:10.5px;color:var(--ink-2)">load + form action, hitung harga di server</small>
+      </div>
+      <div style="color:#C3CCDD;font-size:16px">→</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div style="background:var(--warn-soft);border-radius:8px;padding:6px 10px;text-align:center"><b style="font-size:11px">🗄️ D1</b> <small style="font-size:10px;color:var(--ink-2)">games, skus, orders</small></div>
+        <div style="background:var(--accent-soft);border-radius:8px;padding:6px 10px;text-align:center"><b style="font-size:11px">🖼️ R2</b> <small style="font-size:10px;color:var(--ink-2)">banner, art</small></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:12px;color:var(--ink-2)">
+      <b style="color:var(--ink)">Aturan keras:</b> browser <b>tidak pernah</b> mengirim harga atau total. Yang dikirim hanya <code style="font-family:var(--mono)">player_id</code>, <code style="font-family:var(--mono)">zone_id</code>, <code style="font-family:var(--mono)">sku_id</code>, <code style="font-family:var(--mono)">method</code>. Worker membaca harga dari D1, menghitung biaya admin, lalu menyimpan total.
+    </div>
+  </div>
+
+  <h4>Tabel biaya — target Rp0/bulan</h4>
+  <div class="tw"><table>
+    <thead><tr><th>Layanan</th><th>Tier gratis</th><th>Pemakaian v1 (estimasi)</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Workers request</td><td>100.000 / hari</td><td>~2.000 / hari pada hari ramai</td><td><span class="b b-ok">Aman 2%</span></td></tr>
+      <tr><td>Workers CPU</td><td>10 ms / request (free)</td><td>halaman SSR ~3–6 ms</td><td><span class="b b-ok">Aman</span></td></tr>
+      <tr><td>D1 rows read</td><td>5.000.000 / hari</td><td>~10.000 / hari</td><td><span class="b b-ok">Aman 0.2%</span></td></tr>
+      <tr><td>D1 storage</td><td>5 GB</td><td>&lt; 20 MB / tahun</td><td><span class="b b-ok">Aman</span></td></tr>
+      <tr><td>R2 storage</td><td>10 GB</td><td>&lt; 50 MB (banner + art)</td><td><span class="b b-ok">Aman</span></td></tr>
+      <tr><td>R2 class B (baca)</td><td>10 juta / bulan</td><td>~50.000 / bulan</td><td><span class="b b-ok">Aman</span></td></tr>
+      <tr><td>Domain</td><td><code style="font-family:var(--mono)">*.workers.dev</code></td><td>subdomain gratis</td><td><span class="b b-ok">Rp0</span></td></tr>
+      <tr><td>Font</td><td>Google Fonts</td><td>2 keluarga, subset latin</td><td><span class="b b-ok">Rp0</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout danger" style="border-color:#F5C2C2;background:var(--danger-soft)">
+    <div class="ic">🚨</div>
+    <div>
+      <h5>Hard cap $5/bulan</h5>
+      <p>Pasang <b>budget alert Cloudflare di $1</b> dan <b>notifikasi billing di $5</b>. Kalau alert $5 berbunyi, artinya ada yang salah arsitektur (loop request, retry tak berujung, atau aset besar dari R2 tanpa cache) — bukan "toko sukses". Angka gratis di atas hanya berlaku kalau tidak ada fitur yang memanggil API pihak ketiga per request.</p>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <div class="ic">💸</div>
+    <div>
+      <h5>Yang <i>tidak</i> dibeli di v1</h5>
+      <p>Payment gateway berbayar, domain .com, email transaksional (Resend/Mailgun), SMS OTP, layanan verifikasi ID game berbayar, analytics berbayar, uptime monitor berbayar. Semua kebutuhan itu diganti simulasi + <code style="font-family:var(--mono)">wa.me</code> sampai ada pendapatan nyata.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 13 MODEL DATA -->
+<section id="data">
+  <h3 class="sec">Bagian 13</h3>
+  <h2 class="sec">Model data</h2>
+  <p class="lead">Lima tabel. Tidak ada tabel <code style="font-family:var(--mono)">users</code>, tidak ada <code style="font-family:var(--mono)">carts</code>, tidak ada <code style="font-family:var(--mono)">sessions</code>. Semua uang disimpan sebagai <b>integer Rupiah</b> (bukan float) supaya tidak ada pembulatan aneh.</p>
+
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card">
+      <h4 style="margin-top:0"><code style="font-family:var(--mono)">games</code></h4>
+      <div class="tw" style="border:none"><table>
+        <thead><tr><th style="width:120px">Kolom</th><th style="width:110px">Tipe</th><th>Catatan</th></tr></thead>
+        <tbody>
+          <tr><td><code style="font-family:var(--mono)">id</code></td><td>INTEGER PK</td><td>auto</td></tr>
+          <tr><td><code style="font-family:var(--mono)">slug</code></td><td>TEXT UNIQUE</td><td><code style="font-family:var(--mono)">mobile-legends</code></td></tr>
+          <tr><td><code style="font-family:var(--mono)">name</code></td><td>TEXT</td><td>Mobile Legends</td></tr>
+          <tr><td><code style="font-family:var(--mono)">needs_zone</code></td><td>INTEGER 0/1</td><td>1 untuk MLBB &amp; Genshin</td></tr>
+          <tr><td><code style="font-family:var(--mono)">art_url</code></td><td>TEXT</td><td>URL R2</td></tr>
+          <tr><td><code style="font-family:var(--mono)">sort_order</code></td><td>INTEGER</td><td>urutan di beranda</td></tr>
+          <tr><td><code style="font-family:var(--mono)">is_active</code></td><td>INTEGER 0/1</td><td>0 = sembunyikan</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0"><code style="font-family:var(--mono)">skus</code></h4>
+      <div class="tw" style="border:none"><table>
+        <thead><tr><th style="width:120px">Kolom</th><th style="width:110px">Tipe</th><th>Catatan</th></tr></thead>
+        <tbody>
+          <tr><td><code style="font-family:var(--mono)">id</code></td><td>INTEGER PK</td><td>auto</td></tr>
+          <tr><td><code style="font-family:var(--mono)">game_id</code></td><td>INTEGER FK</td><td>→ games.id</td></tr>
+          <tr><td><code style="font-family:var(--mono)">label</code></td><td>TEXT</td><td>"86 💎"</td></tr>
+          <tr><td><code style="font-family:var(--mono)">price</code></td><td>INTEGER</td><td>Rupiah, CHECK &gt; 0</td></tr>
+          <tr><td><code style="font-family:var(--mono)">price_old</code></td><td>INTEGER NULL</td><td>isi kalau diskon</td></tr>
+          <tr><td><code style="font-family:var(--mono)">is_active</code></td><td>INTEGER 0/1</td><td></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0"><code style="font-family:var(--mono)">orders</code></h4>
+      <div class="tw" style="border:none"><table>
+        <thead><tr><th style="width:130px">Kolom</th><th style="width:110px">Tipe</th><th>Catatan</th></tr></thead>
+        <tbody>
+          <tr><td><code style="font-family:var(--mono)">id</code></td><td>INTEGER PK</td><td>auto</td></tr>
+          <tr><td><code style="font-family:var(--mono)">code</code></td><td>TEXT UNIQUE</td><td><code style="font-family:var(--mono)">GB-YYMMDD-XXXX</code></td></tr>
+          <tr><td><code style="font-family:var(--mono)">game_id</code></td><td>INTEGER FK</td><td></td></tr>
+          <tr><td><code style="font-family:var(--mono)">sku_id</code></td><td>INTEGER FK</td><td>harga disalin, bukan dijoin</td></tr>
+          <tr><td><code style="font-family:var(--mono)">player_id</code></td><td>TEXT</td><td>seperti diketik</td></tr>
+          <tr><td><code style="font-family:var(--mono)">zone_id</code></td><td>TEXT NULL</td><td></td></tr>
+          <tr><td><code style="font-family:var(--mono)">nickname</code></td><td>TEXT</td><td>hasil verifikasi</td></tr>
+          <tr><td><code style="font-family:var(--mono)">sku_price</code></td><td>INTEGER</td><td>harga saat order</td></tr>
+          <tr><td><code style="font-family:var(--mono)">admin_fee</code></td><td>INTEGER</td><td>0 / 1500 / 2500</td></tr>
+          <tr><td><code style="font-family:var(--mono)">total</code></td><td>INTEGER</td><td>sku_price + admin_fee</td></tr>
+          <tr><td><code style="font-family:var(--mono)">method</code></td><td>TEXT</td><td>qris|gopay|ovo|dana|shopeepay|va</td></tr>
+          <tr><td><code style="font-family:var(--mono)">status</code></td><td>TEXT</td><td>CHECK pending|paid|completed|cancelled</td></tr>
+          <tr><td><code style="font-family:var(--mono)">created_at</code></td><td>TEXT</td><td>ISO 8601 UTC</td></tr>
+          <tr><td><code style="font-family:var(--mono)">expires_at</code></td><td>TEXT</td><td>created_at + 15 menit</td></tr>
+          <tr><td><code style="font-family:var(--mono)">paid_at</code></td><td>TEXT NULL</td><td></td></tr>
+          <tr><td><code style="font-family:var(--mono)">completed_at</code></td><td>TEXT NULL</td><td></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0"><code style="font-family:var(--mono)">settings</code></h4>
+      <div class="tw" style="border:none"><table>
+        <thead><tr><th style="width:150px">Kolom</th><th style="width:110px">Tipe</th><th>Catatan</th></tr></thead>
+        <tbody>
+          <tr><td><code style="font-family:var(--mono)">key</code></td><td>TEXT PK</td><td>banner_text, cs_wa, banner_url</td></tr>
+          <tr><td><code style="font-family:var(--mono)">value</code></td><td>TEXT</td><td>nilai bebas</td></tr>
+          <tr><td><code style="font-family:var(--mono)">updated_at</code></td><td>TEXT</td><td></td></tr>
+        </tbody>
+      </table></div>
+      <p style="font-size:12.5px;color:var(--muted);margin:10px 0 0">Tabel kelima yang sering lupa dibuat Junior PM: <b>tempat menyimpan nomor CS dan teks banner</b> supaya tidak hardcode di kode dan perlu deploy ulang.</p>
+    </div>
+  </div>
+
+  <h4>Contoh baris nyata</h4>
+  <div class="card" style="background:#0F172A;color:#CBD5E1;border:none;overflow-x:auto">
+    <pre style="margin:0;font-family:var(--mono);font-size:12.5px;line-height:1.75;white-space:pre">-- orders
+code         GB-261115-4K2P
+game_id      1              -- mobile-legends (needs_zone = 1)
+sku_id       12             -- 86 💎
+player_id    123456789
+zone_id      1234
+nickname     GadzSniper99
+sku_price    22500          -- harga diskon saat itu
+admin_fee    0              -- QRIS
+total        22500
+method       qris
+status       pending
+created_at   2026-11-15T02:44:10Z
+expires_at   2026-11-15T02:59:10Z</pre>
+  </div>
+
+  <div class="callout info">
+    <div class="ic">🔒</div>
+    <div>
+      <h5>Dua aturan integritas</h5>
+      <p><b>1. Harga disalin ke order.</b> Kalau admin mengubah harga SKU besok, invoice kemarin tidak boleh ikut berubah. <b>2. Status hanya bergerak maju.</b> Transisi divalidasi di Worker, bukan hanya di UI — <code style="font-family:var(--mono)">completed → pending</code> harus ditolak di server walaupun seseorang mengirim POST manual.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 14 PETA LAYAR -->
+<section id="tautan">
+  <h3 class="sec">Bagian 14</h3>
+  <h2 class="sec">Peta layar</h2>
+  <p class="lead">Siapa boleh ke mana. Garis penuh = jalur utama pembeli. Garis putus-putus = jalur buntu/kembali yang harus tetap ada supaya pembeli tidak terjebak.</p>
+
+  <div class="card" style="margin-top:16px;overflow-x:auto">
+    <div style="min-width:860px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div style="background:var(--primary-soft);border:1.5px solid var(--primary);border-radius:12px;padding:12px 14px">
+          <span class="b b-pri">Home</span>
+          <b style="display:block;font-size:13px;margin:6px 0 2px">/</b>
+          <small style="font-size:11px;color:var(--ink-2)">8 kartu game · pencarian · trust strip</small>
+        </div>
+        <div style="background:var(--surface-2);border-radius:12px;padding:12px 14px">
+          <span class="b b-mute">Guest</span>
+          <b style="display:block;font-size:13px;margin:6px 0 2px">/cek</b>
+          <small style="font-size:11px;color:var(--ink-2)">Form kode order + hasil</small>
+        </div>
+        <div style="background:var(--surface-2);border-radius:12px;padding:12px 14px">
+          <span class="b b-mute">Bantuan</span>
+          <b style="display:block;font-size:13px;margin:6px 0 2px">wa.me/…</b>
+          <small style="font-size:11px;color:var(--ink-2)">Keluar dari situs, prefilled kode</small>
+        </div>
+      </div>
+
+      <div style="text-align:center;color:#C3CCDD;margin:6px 0">↓ tap kartu game</div>
+
+      <div style="background:var(--primary-soft);border:1.5px solid var(--primary);border-radius:12px;padding:12px 14px;max-width:44%;margin:0 auto">
+        <span class="b b-pri">Game + Verify</span>
+        <b style="display:block;font-size:13px;margin:6px 0 2px">/game/[slug]</b>
+        <small style="font-size:11px;color:var(--ink-2)">ID → Verify → nickname → nominal → metode → CTA</small>
+      </div>
+
+      <div style="text-align:center;color:#C3CCDD;margin:6px 0">↓ POST /game/[slug]</div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div style="background:var(--primary-soft);border:1.5px solid var(--primary);border-radius:12px;padding:12px 14px">
+          <span class="b b-pri">Invoice</span>
+          <b style="display:block;font-size:13px;margin:6px 0 2px">/invoice/[code]</b>
+          <small style="font-size:11px;color:var(--ink-2)">QRIS · timer · rincian · simulasi bayar</small>
+        </div>
+        <div style="background:var(--surface-2);border-radius:12px;padding:12px 14px">
+          <span class="b b-mute">Cek Order</span>
+          <b style="display:block;font-size:13px;margin:6px 0 2px">/cek?code=…</b>
+          <small style="font-size:11px;color:var(--ink-2)">Timeline status, tanpa login</small>
+        </div>
+        <div style="background:var(--warn-soft);border-radius:12px;padding:12px 14px">
+          <span class="b b-warn">Kedaluwarsa</span>
+          <b style="display:block;font-size:13px;margin:6px 0 2px">/invoice/[code]</b>
+          <small style="font-size:11px;color:var(--ink-2)">Tampilan abu + "Buat pesanan baru"</small>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;border-top:1px dashed var(--line);padding-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px;background:var(--surface-2);border-radius:10px;padding:10px 12px">
+          <span class="b b-pri">Admin</span>
+          <b style="display:block;font-size:12.5px;margin:5px 0 2px">/admin</b>
+          <small style="font-size:11px;color:var(--ink-2)">Password → tabel order → aksi status</small>
+        </div>
+        <div style="flex:1;min-width:180px;background:var(--surface-2);border-radius:10px;padding:10px 12px">
+          <span class="b b-pri">Admin</span>
+          <b style="display:block;font-size:12.5px;margin:5px 0 2px">/admin/sku</b>
+          <small style="font-size:11px;color:var(--ink-2)">Edit harga, unggah banner</small>
+        </div>
+        <div style="flex:1;min-width:180px;background:var(--surface-2);border-radius:10px;padding:10px 12px">
+          <span class="b b-mute">Sistem</span>
+          <b style="display:block;font-size:12.5px;margin:5px 0 2px">/api/verify-id</b>
+          <small style="font-size:11px;color:var(--ink-2)">POST JSON, dipanggil dari halaman game</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card">
+      <h4 style="margin-top:0">Yang wajib bisa dilakukan dari setiap layar</h4>
+      <ul class="cl">
+        <li><span class="box"></span>Dari <b>invoice</b>: salin kode, kirim ke WA, buka Cek Order.</li>
+        <li><span class="box"></span>Dari <b>Cek Order</b>: kembali ke invoice kalau masih pending.</li>
+        <li><span class="box"></span>Dari <b>game</b>: kembali ke home tanpa kehilangan pilihan SKU (scroll position dipertahankan).</li>
+        <li><span class="box"></span>Dari <b>admin</b>: keluar (logout) selalu satu tap, tidak tersembunyi di menu.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0">Layar yang sengaja <span style="color:var(--danger)">tidak</span> ada</h4>
+      <ul class="cl">
+        <li><span class="box"></span>Keranjang — satu order = satu SKU, sesuai batas 3 langkah.</li>
+        <li><span class="box"></span>Login pembeli / riwayat pesanan — diganti Cek Order.</li>
+        <li><span class="box"></span>Halaman konfirmasi sebelum bayar — invoice itu sendiri konfirmasinya.</li>
+        <li><span class="box"></span>Halaman syarat &amp; ketentuan terpisah — cukup satu kalimat di footer invoice.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 15 JEBAKAN -->
+<section id="trap">
+  <h3 class="sec">Bagian 15</h3>
+  <h2 class="sec">Jebakan Junior PM</h2>
+  <p class="lead">Lima kesalahan yang paling sering terjadi pada toko top-up pertama, ditulis sebagai gejala → akibat → tindakan.</p>
+
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card" style="border-left:4px solid var(--danger)">
+      <h4 style="margin-top:0">1 · Menambahkan akun "biar rapi"</h4>
+      <p style="font-size:13.5px;margin:0 0 8px"><b>Gejala:</b> "Kan enak kalau pembeli bisa lihat riwayat." <b>Akibat:</b> register, login, lupa password, verifikasi email — 4 layar baru dan 1 tabel baru, tanpa satu pun pembeli memintanya.</p>
+      <p style="font-size:13.5px;margin:0"><b>Tindakan:</b> Cek Order dengan kode sudah menyelesaikan 100% kebutuhan "lihat riwayat". Tulis di PRD: akun = v2, dan hanya kalau ada ≥ 5 permintaan nyata.</p>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--danger)">
+      <h4 style="margin-top:0">2 · Menumpuk edge case sebelum ada 1 order</h4>
+      <p style="font-size:13.5px;margin:0 0 8px"><b>Gejala:</b> refactor, promo code, cashback, multi-bahasa. <b>Akibat:</b> tidak ada yang bisa dibeli sampai minggu ke-6.</p>
+      <p style="font-size:13.5px;margin:0"><b>Tindakan:</b> jadikan <b>"ada 1 order pending yang bisa dibuka ulang lewat kode"</b> sebagai gerbang pertama. Semua fitur lain menunggu gerbang itu lewat.</p>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--warn)">
+      <h4 style="margin-top:0">3 · Mengabaikan jempol dan keyboard</h4>
+      <p style="font-size:13.5px;margin:0 0 8px"><b>Gejala:</b> desain indah di laptop, rusak di HP. <b>Akibat:</b> input ID di tengah layar, keyboard menutupi CTA, tombol 28px.</p>
+      <p style="font-size:13.5px;margin:0"><b>Tindakan:</b> semua review dilakukan di HP 390px, bukan laptop. CTA sticky di bawah, input <code style="font-family:var(--mono)">inputmode="numeric"</code>, target sentuh 44px.</p>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--warn)">
+      <h4 style="margin-top:0">4 · Scope creep lewat "cuma nambah satu field"</h4>
+      <p style="font-size:13.5px;margin:0 0 8px"><b>Gejala:</b> email opsional, kode promo, catatan untuk admin. <b>Akibat:</b> setiap field baru menambah validasi, kolom DB, dan kasus uji — dan memperlambat checkout.</p>
+      <p style="font-size:13.5px;margin:0"><b>Tindakan:</b> pakai <b>batas keras §6</b>: maksimal 2 input sebelum bayar. Field baru harus menghapus field lain, bukan menambah.</p>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--danger)">
+      <h4 style="margin-top:0">5 · Klaim kepercayaan yang tidak bisa dibuktikan</h4>
+      <p style="font-size:13.5px;margin:0 0 8px"><b>Gejala:</b> "50.000+ transaksi", "sejak 2021", logo bank yang tidak dipakai. <b>Akibat:</b> begitu satu pembeli sadar itu palsu, seluruh halaman kehilangan kredibilitas.</p>
+      <p style="font-size:13.5px;margin:0"><b>Tindakan:</b> hanya 3 badge jujur di §3. Label "DEMO" pada QRIS dan tombol simulasi tetap terlihat, seberapa pun inginnya dihapus.</p>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--primary);background:var(--primary-soft)">
+      <h4 style="margin-top:0">Aturan penutup untuk dirimu</h4>
+      <p style="font-size:13.5px;margin:0 0 8px">Sebelum menambah apa pun, jawab tiga pertanyaan ini di catatan:</p>
+      <ol style="font-size:13.5px;margin:0;padding-left:18px">
+        <li>Cerita pengguna mana (US-xx) yang dilayani?</li>
+        <li>Menambah langkah, layar, atau input?</li>
+        <li>Bisa ditunda ke v2 tanpa merusak alur bayar?</li>
+      </ol>
+      <p style="font-size:13.5px;margin:8px 0 0">Kalau jawaban (2) ya dan (3) ya — <b>tunda</b>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 16 METRIK -->
+<section id="metrik">
+  <h3 class="sec">Bagian 16</h3>
+  <h2 class="sec">Metrik sukses</h2>
+  <p class="lead">Enam angka dan satu angka penjaga. Semua bisa dihitung dari tabel <code style="font-family:var(--mono)">orders</code> — tanpa analytics berbayar. Cukup satu query SQL di akhir hari.</p>
+
+  <div class="tw" style="margin-top:16px"><table>
+    <thead><tr><th style="width:58px">ID</th><th style="width:200px">Metrik</th><th style="width:130px">Target v1</th><th>Cara menghitung</th></tr></thead>
+    <tbody>
+      <tr><td><b>M1</b></td><td><b>Waktu checkout</b> (dari buka halaman game sampai invoice tampil)</td><td><span class="b b-ok">&lt; 60 detik</span></td><td>Uji 5 orang dengan stopwatch. Bukan tebakan, bukan analytics.</td></tr>
+      <tr><td><b>M2</b></td><td><b>Tingkat verifikasi berhasil</b></td><td>&gt; 90%</td><td>Request <code style="font-family:var(--mono)">/api/verify-id</code> sukses ÷ total request.</td></tr>
+      <tr><td><b>M3</b></td><td><b>Drop-off setelah verify</b></td><td>&lt; 25%</td><td>Order dibuat ÷ verifikasi berhasil. Kalau tinggi, nominal terlalu banyak atau harga mengejutkan.</td></tr>
+      <tr><td><b>M4</b></td><td><b>Order jadi lunas</b></td><td>&gt; 50%</td><td><code style="font-family:var(--mono)">paid+completed</code> ÷ semua order. Di bawah 30% artinya alur bayar membingungkan.</td></tr>
+      <tr><td><b>M5</b></td><td><b>Waktu admin dari pending ke paid</b></td><td>&lt; 10 menit</td><td><code style="font-family:var(--mono)">paid_at − created_at</code>, median.</td></tr>
+      <tr><td><b>M6</b></td><td><b>Order menginap</b> (<code style="font-family:var(--mono)">pending</code> &gt; 24 jam)</td><td>0</td><td>Query harian. Kalau naik, admin lupa membersihkan atau timer menipu.</td></tr>
+      <tr style="background:var(--danger-soft)"><td><b>M0</b></td><td><b>Penjaga: tagihan Cloudflare</b></td><td><span class="b b-danger">$0</span></td><td>Bulanan. Kalau &gt; $0 tanpa sengaja, hentikan fitur baru dan cari penyebabnya.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="grid g3" style="margin-top:16px">
+    <div class="card" style="text-align:center">
+      <div style="font-size:30px;font-weight:800;color:var(--primary);line-height:1.1">60<span style="font-size:14px;color:var(--muted)">dtk</span></div>
+      <small style="font-size:12px;color:var(--ink-2)">Batas checkout. Kalau lewat, potong satu langkah — jangan tambah animasi.</small>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:30px;font-weight:800;color:var(--ok);line-height:1.1">90<span style="font-size:14px;color:var(--muted)">%</span></div>
+      <small style="font-size:12px;color:var(--ink-2)">Verifikasi harus berhasil. Di bawah ini artinya format ID salah dipahami.</small>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:30px;font-weight:800;color:var(--warn);line-height:1.1">≤ 10<span style="font-size:14px;color:var(--muted)">mnt</span></div>
+      <small style="font-size:12px;color:var(--ink-2)">Jeda admin menandai lunas. Ini janji "instan" yang sebenarnya.</small>
+    </div>
+  </div>
+
+  <div class="callout warn" style="margin-top:6px">
+    <div class="ic">📊</div>
+    <div>
+      <h5>Yang tidak diukur di v1</h5>
+      <p>Bounce rate, pageview, funnel multi-sesi, retensi, LTV. Sitamenya masih demo dan trafiknya belum cukup untuk angka itu berarti. Mengukur hal yang belum berarti hanya menambah pekerjaan tanpa mengubah keputusan. Tambahkan saat M4 sudah di atas 50% selama dua minggu berturut-turut.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 17 CHECKLIST LAUNCH -->
+<section id="launch">
+  <h3 class="sec">Bagian 17</h3>
+  <h2 class="sec">Checklist launch bertahap</h2>
+  <p class="lead">Empat fase. Setiap item menunjuk ke <b>US-xx</b> atau grup <b>AC-*</b> yang harus lulus sebelum pindah fase. Aturan satu-satunya: <b>jangan pernah mengerjakan dua fase sekaligus</b>.</p>
+
+  <div class="card" style="margin-top:16px">
+    <div class="phase">
+      <div class="n">1</div>
+      <div style="flex:1">
+        <h5>Seed — data dan kebenaran isi <span class="b b-pri">Fase data</span></h5>
+        <p class="goal">Durasi realistis 2–3 hari · belum ada kode transaksi</p>
+        <ul class="cl">
+          <li><span class="box"></span>Isi tabel <code style="font-family:var(--mono)">games</code>: 8 game, <code style="font-family:var(--mono)">needs_zone</code> benar untuk MLBB &amp; Genshin. <span class="b b-mute">§13</span></li>
+          <li><span class="box"></span>Isi <code style="font-family:var(--mono)">skus</code>: 6 nominal per game (48 baris), harga terbaca manusia, semua <code style="font-family:var(--mono)">price &gt; 0</code>. <span class="b b-mute">§13</span></li>
+          <li><span class="box"></span>Unggah art game ke R2, ukur total &lt; 5 MB, cek versi jaringan lambat. <span class="b b-mute">§12</span></li>
+          <li><span class="box"></span>Isi <code style="font-family:var(--mono)">settings</code>: nomor CS, teks banner. <b>Tanpa hardcode di kode.</b> <span class="b b-mute">§13</span></li>
+          <li><span class="box"></span>Tentukan 3 badge jujur final (di §3) dan satu kalimat "situs demo" di footer. <span class="b b-mute">§3</span></li>
+        </ul>
+        <div class="callout plain" style="margin:10px 0 0;padding:12px 14px">
+          <div class="ic">🚦</div><div><p><b>Gerbang keluar:</b> mengetik satu slug game di browser mengembalikan data yang sama persis dengan yang ada di D1 — tanpa cache yang menipu.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="n">2</div>
+      <div style="flex:1">
+        <h5>Build — jalur bayar inti <span class="b b-warn">Fase kode</span></h5>
+        <p class="goal">Durasi realistis 7–10 hari · hanya jalur utama, tanpa hiasan</p>
+        <ul class="cl">
+          <li><span class="box"></span>Home: 8 kartu game + pencarian + trust strip. <span class="b b-mute">US-01</span></li>
+          <li><span class="box"></span>Halaman game: input ID (+Zone bila perlu), tombol Verify, kartu nickname. <span class="b b-mute">AC-A</span></li>
+          <li><span class="box"></span><code style="font-family:var(--mono)">POST /api/verify-id</code> — simulasi 1,5 dtk, tangani 3 kasus: sukses, ID tidak ditemukan, jaringan putus. <span class="b b-mute">AC-A</span></li>
+          <li><span class="box"></span>Pilih SKU + metode bayar, biaya admin tampil terpisah; total dihitung **di server**. <span class="b b-mute">AC-B</span></li>
+          <li><span class="box"></span>Buat order → kode <code style="font-family:var(--mono)">GB-YYMMDD-XXXX</code> → redirect ke invoice. <span class="b b-mute">US-08</span></li>
+          <li><span class="box"></span>Invoice QRIS bertanda "<b>DEMO</b>", timer 15 menit, tombol simulasi bayar. <span class="b b-mute">AC-C</span></li>
+          <li><span class="box"></span>Cek Order berdasar kode + timeline status. <span class="b b-mute">AC-C</span></li>
+          <li><span class="box"></span>Admin: login, tabel order + filter status/tanggal, ubah status sesuai state machine. <span class="b b-mute">AC-D</span></li>
+          <li><span class="box"></span>Tombol "Kirim invoice ke WhatsApp" lewat <code style="font-family:var(--mono)">wa.me</code> prefilled, atau label "notifikasi tidak benar-benar dikirim". <span class="b b-mute">§3</span></li>
+        </ul>
+        <div class="callout ok" style="margin:10px 0 0;padding:12px 14px">
+          <div class="ic">✅</div><div><p><b>Gerbang keluar (gerbang terpenting di seluruh PRD):</b> satu order bisa dibuat, dibayar (simulasi), ditandai lunas oleh admin, lalu <b>dibuka ulang lewat kode</b> — dan statusnya tetap benar. Kalau ini belum jalan, jangan sentuh apa pun lagi.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="n">3</div>
+      <div style="flex:1">
+        <h5>Demo — uji di HP nyata <span class="b b-acc">Fase validasi</span></h5>
+        <p class="goal">Durasi realistis 2–3 hari · 5 orang, bukan 50</p>
+        <ul class="cl">
+          <li><span class="box"></span>Uji di HP 390px (bukan laptop): ID, tombol, sticky CTA, keyboard tidak menutupi. <span class="b b-mute">§15 · jebakan 3</span></li>
+          <li><span class="box"></span>5 orang coba checkout dengan stopwatch. Catat angka <b>M1</b> per orang. <span class="b b-mute">M1</span></li>
+          <li><span class="box"></span>Ulangi 1 orang dengan koneksi 3G lambat / mode pesawat di tengah alur. <span class="b b-mute">AC-A</span></li>
+          <li><span class="box"></span>Cek eksplisit: apakah ada orang mengira QRIS-nya bisa dipindai untuk benar-benar membayar? Kalau ya, label DEMO belum cukup besar.</li>
+          <li><span class="box"></span>Periksa setiap kalimat klaim di halaman — pastikan tidak ada angka yang tidak bisa dibuktikan. <span class="b b-mute">§3 · jebakan 5</span></li>
+          <li><span class="box"></span>Pasang budget alert Cloudflare <b>$1</b> dan <b>$5</b>, lalu biarkan situs menganggur 3 hari dan pastikan tagihan tetap $0. <span class="b b-mute">M0</span></li>
+        </ul>
+        <div class="callout warn" style="margin:10px 0 0;padding:12px 14px">
+          <div class="ic">🧪</div><div><p><b>Gerbang keluar:</b> M1 median &lt; 60 dtk <b>dan</b> tidak ada peserta yang keliru mengira QRIS bisa dipakai membayar. Kalau salah satu gagal, perbaiki satu hal saja lalu ulangi — jangan tambah fitur.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="n">4</div>
+      <div style="flex:1">
+        <h5>Validasi — pasang ke domain nyata <span class="b b-ok">Fase rilis</span></h5>
+        <p class="goal">Tanpa tanggal. Rilis hanya setelah gerbang 2 dan 3 lulus.</p>
+        <ul class="cl">
+          <li><span class="box"></span>Deploy ke <code style="font-family:var(--mono)">*.workers.dev</code>, uji sekali lagi dari HP dengan data seluler (bukan Wi-Fi kampus).</li>
+          <li><span class="box"></span>Cek <code style="font-family:var(--mono)">/api/health</code> merespons 200, dan catat cara memantau tanpa layanan berbayar.</li>
+          <li><span class="box"></span>Siapkan proses manual harian: cari order <code style="font-family:var(--mono)">pending</code> &gt; 24 jam, tandai <code style="font-family:var(--mono)">cancelled</code>. Tulis tempatnya di satu file, bukan di kepala. <span class="b b-mute">M6</span></li>
+          <li><span class="box"></span>Tulis 1 paragraf "cara menjawab pembeli yang bertanya apakah ini asli" — jawaban jujur, tanpa berjanji berlebih.</li>
+          <li><span class="box"></span>Bagikan ke 10 orang pertama secara langsung. Jangan pasang iklan. <span class="b b-mute">M4</span></li>
+          <li><span class="box"></span>Setelah 2 minggu: hitung M1–M6. Kalau M4 &lt; 30%, masalahnya di alur bayar, <b>bukan</b> di jumlah game.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout danger" style="border-color:#F5C2C2;background:var(--danger-soft)">
+    <div class="ic">🛑</div>
+    <div>
+      <h5>Satu aturan yang membatalkan semua fase</h5>
+      <p>Kalau di tengah fase mana pun kamu mulai berkata <i>"sekalian tambah…"</i> — berhenti. Tulis ke daftar v2 di §4, lalu kembali ke checklist. Setiap fitur yang masuk tanpa menghapus fitur lain menunda gerbang terpenting di fase 2.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 18 RISIKO -->
+<section id="risiko">
+  <h3 class="sec">Bagian 18</h3>
+  <h2 class="sec">Risiko &amp; open questions</h2>
+  <p class="lead">Risiko ditulis dengan <b>pemicu</b> yang bisa dilihat dan <b>tindakan</b> yang sudah diputuskan sebelum terjadi — bukan daftar kekhawatiran.</p>
+
+  <div class="tw" style="margin-top:16px"><table>
+    <thead><tr><th style="width:56px">ID</th><th style="width:170px">Risiko</th><th style="width:90px">Peluang</th><th style="width:90px">Dampak</th><th>Pemicu yang bisa dilihat · tindakan</th></tr></thead>
+    <tbody>
+      <tr><td><b>R1</b></td><td><b>Pembeli mengira situs ini toko sungguhan</b></td><td><span class="b b-warn">Tinggi</span></td><td><span class="b b-danger">Besar</span></td><td>Pemicu: ada yang bertanya "sudah masuk belum diamond saya?" atau mencoba transfer uang nyata. Tindakan: label DEMO pada QRIS dan footer diperbesar, tambahkan satu baris di invoice: "Ini simulasi. Tidak ada uang yang ditarik."</td></tr>
+      <tr><td><b>R2</b></td><td><b>Cloudflare menagih karena satu kesalahan arsitektur</b></td><td><span class="b b-mute">Rendah</span></td><td><span class="b b-danger">Besar</span></td><td>Pemicu: alert $1 berbunyi. Tindakan: matikan deploy baru, cek request terbanyak di dashboard, cari loop/retry atau aset yang tidak di-cache. Hard cap $5 tetap di §12.</td></tr>
+      <tr><td><b>R3</b></td><td><b>Verifikasi ID selalu gagal di kasus nyata</b></td><td><span class="b b-warn">Sedang</span></td><td><span class="b b-warn">Sedang</span></td><td>Pemicu: M2 &lt; 90%. Tindakan: karena v1 masih simulasi, ubah copy agar jelas ini contoh, dan perbaiki pesan error di AC-A — bukan menambah API pihak ketiga berbayar.</td></tr>
+      <tr><td><b>R4</b></td><td><b>Order menumpuk <code style="font-family:var(--mono)">pending</code> selamanya</b></td><td><span class="b b-warn">Sedang</span></td><td><span class="b b-warn">Sedang</span></td><td>Pemicu: M6 &gt; 0 dua hari berturut-turut. Tindakan: admin membersihkan manual; kalau berulang, tambahkan filter "pending &gt; 24 jam" sebagai tampilan default admin.</td></tr>
+      <tr><td><b>R5</b></td><td><b>Scope creep sebelum gerbang fase 2 lulus</b></td><td><span class="b b-warn">Tinggi</span></td><td><span class="b b-warn">Sedang</span></td><td>Pemicu: belum ada order yang bisa dibuka ulang, tapi sudah ada keranjang/akun/promo. Tindakan: hentikan, kembalikan ke checklist §17.</td></tr>
+      <tr><td><b>R6</b></td><td><b>Kode order ditebak orang lain / dibagikan</b></td><td><span class="b b-mute">Rendah</span></td><td><span class="b b-warn">Sedang</span></td><td>Pemicu: kode yang bisa ditebak berurutan. Tindakan: 4 karakter acak (bukan berurutan), halaman Cek Order hanya menampilkan status dan nickname tersamar, bukan ID lengkap.</td></tr>
+      <tr><td><b>R7</b></td><td><b>Harga berubah dan invoice lama ikut berubah</b></td><td><span class="b b-mute">Rendah</span></td><td><span class="b b-warn">Sedang</span></td><td>Pemicu: total di invoice berbeda dari saat dibuat. Tindakan: aturan integritas §13 — harga **disalin** ke order; tambah satu uji khusus untuk ini sebelum fase 2 selesai.</td></tr>
+      <tr><td><b>R8</b></td><td><b>Pembeli tidak bisa memakai nominal yang diinginkan</b></td><td><span class="b b-warn">Sedang</span></td><td><span class="b b-mute">Kecil</span></td><td>Pemicu: peserta demo bertanya "ada nominal lain?" Tindakan: catat, jangan ubah 6 SKU per game di v1 — cukup pastikan 6 pilihan itu yang paling sering dibeli.</td></tr>
+      <tr><td><b>R9</b></td><td><b>Nama "GadzStore" belum dicek ketersediaannya</b></td><td><span class="b b-warn">Sedang</span></td><td><span class="b b-mute">Kecil</span></td><td>Pemicu: nama dipakai orang lain. Tindakan: karena v1 memakai <code style="font-family:var(--mono)">*.workers.dev</code>, nama bisa diganti tanpa biaya — tapi lakukan <b>sebelum</b> membagikan ke 10 orang pertama.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Open questions — yang belum diputuskan</h4>
+  <div class="grid g2">
+    <div class="card">
+      <h4 style="margin-top:0"><span class="b b-warn">Blocker fase 2</span></h4>
+      <ul class="cl">
+        <li><span class="box"></span><b>Notifikasi: kompromi §3 dipilih yang mana?</b> Tombol <code style="font-family:var(--mono)">wa.me</code> prefilled, atau label "DEMO — notifikasi tidak dikirim"? (Bisa keduanya.) Ini harus dijawab sebelum membangun layar invoice.</li>
+        <li><span class="box"></span><b>Timer habis: tampilan saja, atau status ikut berubah?</b> Usulan PM: status DB tetap <code style="font-family:var(--mono)">pending</code>, tampilan berubah "Kedaluwarsa". Konfirmasi agar admin tidak bingung saat membersihkan.</li>
+        <li><span class="box"></span><b>Simulasi verify ID:</b> selalu sukses, atau gagal untuk format tertentu (mis. ID &lt; 6 digit)? Perlu diputuskan agar AC-A bisa diuji.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0"><span class="b b-mute">Bisa ditunda</span></h4>
+      <ul class="cl">
+        <li><span class="box"></span><b>Nomor WhatsApp CS nyata</b> milik siapa, dan siapa yang menjawab? Kalau belum ada, footer cukup menampilkan "CS belum tersedia di demo".</li>
+        <li><span class="box"></span><b>8 game pertama</b> — daftar finalnya dari <code style="font-family:var(--mono)">games.csv</code> lama (25 game) atau dipilih ulang? Perlu dikunci saat fase 1.</li>
+        <li><span class="box"></span><b>Nama resmi toko</b> dan satu baris deskripsi untuk <code style="font-family:var(--mono)">&lt;title&gt;</code> + meta description.</li>
+        <li><span class="box"></span><b>Apakah kode sumber dibuka publik</b> (repo GitHub) atau privat? Mempengaruhi cara menulis secret admin.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="ic">➡️</div>
+    <div>
+      <h5>Langkah berikutnya setelah PRD ini disetujui</h5>
+      <p>Jawab tiga pertanyaan blocker di atas → kunci daftar 8 game → mulai fase 1 (§17). <b>Tidak ada kode produk sebelum PRD ini disetujui.</b> Kalau salah satu keputusan di §2 atau kompromi di §3 berubah, ubah PRD ini dulu, baru kode — satu sumber kebenaran, bukan dua.</p>
+    </div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

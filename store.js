@@ -28,6 +28,7 @@
     product: document.getElementById("productView"),
     order: document.getElementById("orderView"),
     track: document.getElementById("trackView"),
+    info: document.getElementById("infoView"),
     missing: document.getElementById("missingView")
   };
   var rails = document.getElementById("rails");
@@ -35,6 +36,13 @@
   var searchForm = document.getElementById("searchForm");
   var searchInput = document.getElementById("searchInput");
   var toastEl = document.getElementById("toast");
+  var menuBtn = document.getElementById("menuBtn");
+  var drawer = document.getElementById("drawer");
+  var drawerClose = document.getElementById("drawerClose");
+  var drawerOverlay = document.getElementById("drawerOverlay");
+  var newsTrack = document.getElementById("newsTrack");
+  var newsPrev = document.getElementById("newsPrev");
+  var newsNext = document.getElementById("newsNext");
 
   var state = {
     config: null,
@@ -281,22 +289,11 @@
 
   function productCard(product) {
     var color = safeColor(product.color);
-    var count = Number(product.denomination_count) || 0;
-    var metaBits = [];
-    if (product.unit) metaBits.push(product.unit);
-    if (product.requires_zone) metaBits.push("butuh Zone ID");
-    if (!metaBits.length) metaBits.push(count ? count + " nominal" : "Tersedia");
     return '<a class="product-card" href="#/produk/' + esc(product.slug) + '" title="' + esc(product.name) + '">' +
       '<span class="product-thumb" style="background:linear-gradient(150deg,' + color + "," + shade(color, -34) + ')">' +
         '<span class="thumb-icon">' + esc(product.icon || "🎮") + "</span>" +
-        (count ? '<span class="thumb-badge">' + count + " nominal</span>" : "") +
       "</span>" +
-      '<span class="product-body">' +
-        '<span class="product-cat">' + esc(product.category_name || "") + "</span>" +
-        '<span class="product-name">' + esc(product.name) + "</span>" +
-        '<span class="product-meta">' + esc(metaBits.join(" · ")) + "</span>" +
-        '<span class="product-price"><small>Mulai</small> ' + rupiah(product.min_price) + "</span>" +
-      "</span>" +
+      '<span class="product-name">' + esc(product.name) + "</span>" +
     "</a>";
   }
 
@@ -310,11 +307,12 @@
     if (!rails) return;
     if (state.categories.length) {
       rails.innerHTML = state.categories.map(function (category) {
-        var products = (category.products || []).slice(0, 12);
-        return '<section class="store-section">' +
+        var products = category.products || [];
+        return '<section class="store-section" id="kategori-' + esc(category.slug) + '">' +
           '<div class="section-head"><h2>' + esc(category.name) + '</h2>' +
-            '<a class="section-more" href="#/kategori/' + esc(category.slug) + '">Lihat semua →</a></div>' +
+            '<a class="section-more" href="#/kategori/' + esc(category.slug) + '">Lihat Semua</a></div>' +
           productGrid(products) +
+          '<a class="section-cta" href="#/kategori/' + esc(category.slug) + '">Lihat Semua</a>' +
         "</section>";
       }).join("");
       return;
@@ -367,9 +365,8 @@
           '<p class="page-sub">Pilih produk favoritmu, masukkan ID akun, lalu bayar dengan QRIS.</p>' +
         "</div>" +
         '<section class="panel">' +
-          '<div class="section-head"><h2>' + esc(category.name) + " <span class=\"result-count\">" +
-            (category.products || []).length + " produk</span></h2>" +
-            '<a class="section-more" href="#/">← Semua kategori</a></div>' +
+          '<div class="section-head"><h2>' + esc(category.name) + '</h2>' +
+            '<a class="section-more" href="#/">Semua Kategori</a></div>' +
           productGrid(category.products || []) +
         "</section>";
     }).catch(function (error) {
@@ -909,6 +906,154 @@
     document.title = "Lacak Pesanan — TheGadz Store";
   }
 
+  /* ---------------------------------------------------------------- info pages */
+
+  var INFO_PAGES = {
+    bantuan: {
+      title: "Cara Top Up & Pembayaran",
+      body:
+        "<h2>Cara top up</h2>" +
+        "<ol>" +
+          "<li>Pilih kategori dan produk yang ingin dibeli dari halaman beranda.</li>" +
+          "<li>Masukkan Player ID, User ID, atau nomor HP tujuan beserta Zone ID jika diminta.</li>" +
+          "<li>Pilih nominal, lalu periksa ringkasan harga dan biaya QRIS.</li>" +
+          "<li>Tekan <b>Beli Sekarang</b> untuk membuat pesanan.</li>" +
+          "<li>Scan QR QRIS dengan aplikasi bank atau e-wallet, lalu bayar sesuai nominal.</li>" +
+          "<li>Status pesanan diperbarui otomatis. Simpan ID pesanan untuk melacak.</li>" +
+        "</ol>" +
+        "<h2>Pembayaran QRIS</h2>" +
+        "<p>TheGadz Store hanya menerima pembayaran QRIS. Satu QR untuk satu pesanan, dan nominalnya sudah termasuk biaya layanan QRIS yang ditampilkan sebelum kamu membayar.</p>" +
+        '<p class="info-note">Pesanan yang belum dibayar sampai batas waktu akan otomatis kedaluwarsa. Buat pesanan baru jika waktunya habis.</p>' +
+        "<h2>Butuh bantuan?</h2>" +
+        '<p>Hubungi kami di <a href="mailto:support@thegadz.store">support@thegadz.store</a> dengan menyertakan ID pesanan dan bukti pembayaran.</p>'
+    },
+    tentang: {
+      title: "Tentang Kami",
+      body:
+        "<h2>TheGadz Store</h2>" +
+        "<p>TheGadz Store adalah toko digital untuk top up game, live app, voucher, pulsa, dan saldo e-money. Semua harga ditampilkan dalam Rupiah dan pembayaran dilakukan lewat QRIS.</p>" +
+        "<h2>Yang kami sediakan</h2>" +
+        "<ul>" +
+          "<li>Top Up Game: Mobile Legends, Free Fire, PUBG Mobile, Valorant, dan lainnya.</li>" +
+          "<li>Top Up Live Apps: Bigo Live, Poppo Live, Mico Live, dan aplikasi populer lain.</li>" +
+          "<li>Voucher: Steam, Google Play, PSN, Roblox, dan voucher digital lain.</li>" +
+          "<li>Pulsa dan E-Money: semua operator besar serta dompet digital utama.</li>" +
+        "</ul>" +
+        "<h2>Kontak</h2>" +
+        '<p>Email: <a href="mailto:support@thegadz.store">support@thegadz.store</a></p>'
+    },
+    privasi: {
+      title: "Kebijakan Privasi",
+      body:
+        "<h2>Data yang kami kumpulkan</h2>" +
+        "<p>Kami hanya menyimpan data yang diperlukan untuk memproses pesanan: ID tujuan (Player ID, User ID, atau nomor HP), Zone ID bila diperlukan, dan nickname opsional.</p>" +
+        "<h2>Penggunaan data</h2>" +
+        "<ul>" +
+          "<li>Memproses dan mengirim pesanan ke tujuan yang kamu masukkan.</li>" +
+          "<li>Menampilkan status pesanan dan riwayat transaksi untuk keperluan bantuan.</li>" +
+          "<li>Mencegah penyalahgunaan dan penipuan.</li>" +
+        "</ul>" +
+        "<h2>Penyimpanan</h2>" +
+        "<p>ID pesanan terakhir disimpan di perangkatmu (localStorage) agar mudah dilacak. Data pembayaran kartu atau saldo tidak pernah kami simpan karena pembayaran dilakukan lewat QRIS di aplikasi pembayaranmu.</p>" +
+        "<h2>Pihak ketiga</h2>" +
+        "<p>Data tujuan pesanan dapat diteruskan ke penyedia layanan top up terkait semata-mata untuk menyelesaikan pesanan.</p>" +
+        '<p class="info-note">Pertanyaan privasi: <a href="mailto:support@thegadz.store">support@thegadz.store</a></p>'
+    },
+    syarat: {
+      title: "Syarat & Ketentuan",
+      body:
+        "<h2>Ketentuan umum</h2>" +
+        "<p>Dengan membuat pesanan di TheGadz Store, kamu setuju untuk memberikan data tujuan yang benar dan membayar sesuai nominal yang tertera.</p>" +
+        "<h2>Pesanan</h2>" +
+        "<ul>" +
+          "<li>Pesanan diproses setelah pembayaran QRIS terkonfirmasi.</li>" +
+          "<li>Data tujuan yang salah menjadi tanggung jawab pembeli.</li>" +
+          "<li>Nominal dan harga dapat berubah sewaktu-waktu sebelum pesanan dibuat.</li>" +
+          "<li>Pesanan yang belum dibayar sampai batas waktu akan kedaluwarsa otomatis.</li>" +
+        "</ul>" +
+        "<h2>Larangan</h2>" +
+        "<p>Dilarang menggunakan layanan ini untuk aktivitas penipuan, pencucian uang, atau pelanggaran hukum lain. Kami berhak membatalkan pesanan yang mencurigakan.</p>"
+    },
+    refund: {
+      title: "Kebijakan Refund",
+      body:
+        "<h2>Kapan refund diberikan</h2>" +
+        "<ul>" +
+          "<li>Pesanan sudah dibayar tetapi tidak dapat diproses oleh penyedia layanan.</li>" +
+          "<li>Terjadi pembayaran ganda untuk satu pesanan yang sama.</li>" +
+          "<li>Kesalahan sistem yang membuat pesanan gagal diproses.</li>" +
+        "</ul>" +
+        "<h2>Kapan refund tidak diberikan</h2>" +
+        "<ul>" +
+          "<li>Pesanan sudah berhasil dikirim ke tujuan.</li>" +
+          "<li>Data tujuan salah karena kesalahan pembeli.</li>" +
+          "<li>Akun tujuan dalam status diblokir atau dibatasi pihak game/aplikasi.</li>" +
+        "</ul>" +
+        "<h2>Proses refund</h2>" +
+        "<p>Hubungi <a href=\"mailto:support@thegadz.store\">support@thegadz.store</a> dengan ID pesanan dan bukti pembayaran maksimal 3x24 jam setelah transaksi. Refund yang disetujui dikembalikan melalui QRIS atau transfer ke rekening yang kamu sebutkan, maksimal 7 hari kerja.</p>"
+    }
+  };
+
+  function renderInfo(slug) {
+    var view = views.info;
+    var page = INFO_PAGES[slug];
+    if (!page) {
+      showView("missing");
+      document.title = "Halaman tidak ditemukan — TheGadz Store";
+      return;
+    }
+    document.title = page.title + " — TheGadz Store";
+    var links = Object.keys(INFO_PAGES).map(function (key) {
+      return '<a href="#/info/' + esc(key) + '"' + (key === slug ? ' class="active"' : "") + ">" +
+        esc(INFO_PAGES[key].title) + "</a>";
+    }).join("");
+    view.innerHTML =
+      '<div class="view-head">' +
+        '<nav class="crumb"><a href="#/">Beranda</a><span>/</span><span>' + esc(page.title) + "</span></nav>" +
+      "</div>" +
+      '<div class="info-layout">' +
+        '<section class="info-card">' +
+          "<h1>" + esc(page.title) + "</h1>" +
+          page.body +
+        "</section>" +
+        '<aside class="info-card"><h2>Informasi</h2><nav class="info-nav">' + links + "</nav></aside>" +
+      "</div>";
+    showView("info");
+  }
+
+  /* ---------------------------------------------------------------- drawer + news */
+
+  function openDrawer() {
+    if (!drawer) return;
+    drawer.classList.add("open");
+    drawer.setAttribute("aria-hidden", "false");
+    if (drawerOverlay) {
+      drawerOverlay.hidden = false;
+      drawerOverlay.classList.add("show");
+    }
+    document.body.classList.add("drawer-open");
+    if (menuBtn) menuBtn.setAttribute("aria-expanded", "true");
+  }
+
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.classList.remove("open");
+    drawer.setAttribute("aria-hidden", "true");
+    if (drawerOverlay) {
+      drawerOverlay.classList.remove("show");
+      drawerOverlay.hidden = true;
+    }
+    document.body.classList.remove("drawer-open");
+    if (menuBtn) menuBtn.setAttribute("aria-expanded", "false");
+  }
+
+  function newsStep(dir) {
+    if (!newsTrack) return;
+    var card = newsTrack.querySelector(".news-card");
+    var distance = card ? card.getBoundingClientRect().width + 12 : Math.round(newsTrack.clientWidth * 0.8);
+    newsTrack.scrollBy({ left: dir * distance, behavior: "smooth" });
+  }
+
   /* ---------------------------------------------------------------- routing */
 
   function parseRoute() {
@@ -938,6 +1083,7 @@
     if (parts[0] === "produk" && parts[1]) return { name: "product", slug: decode(parts[1]) };
     if (parts[0] === "pesanan" && parts[1]) return { name: "order", id: decode(parts[1]).toUpperCase() };
     if (parts[0] === "lacak") return { name: "track" };
+    if (parts[0] === "info") return { name: "info", slug: decode(parts[1] || "") };
     if (parts[0] === "cari") return { name: "search", q: query.q || "" };
     return { name: "missing" };
   }
@@ -953,6 +1099,7 @@
   function route() {
     clearTimers();
     state.orderToken++;
+    closeDrawer();
     var info = parseRoute();
     state.route = info;
     setActiveNav(info);
@@ -1001,6 +1148,11 @@
     if (info.name === "track") {
       showView("track");
       renderTrack();
+      return;
+    }
+
+    if (info.name === "info") {
+      renderInfo(info.slug);
       return;
     }
 
@@ -1072,6 +1224,29 @@
         if (history.replaceState) history.replaceState(null, "", "#cara-top-up");
       }
     }
+  });
+
+  if (menuBtn) {
+    menuBtn.addEventListener("click", function () {
+      if (drawer && drawer.classList.contains("open")) closeDrawer();
+      else openDrawer();
+    });
+  }
+
+  if (drawerClose) drawerClose.addEventListener("click", closeDrawer);
+  if (drawerOverlay) drawerOverlay.addEventListener("click", closeDrawer);
+
+  if (newsPrev) newsPrev.addEventListener("click", function () { newsStep(-1); });
+  if (newsNext) newsNext.addEventListener("click", function () { newsStep(1); });
+
+  if (catNav) {
+    catNav.addEventListener("click", function (event) {
+      if (event.target.closest("a")) closeDrawer();
+    });
+  }
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" || event.key === "Esc") closeDrawer();
   });
 
   window.addEventListener("hashchange", route);
