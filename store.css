@@ -133,19 +133,6 @@ button {
   flex-shrink: 0;
 }
 
-.brand-logo {
-  display: block;
-  height: 38px;
-  width: auto;
-  max-width: 220px;
-  object-fit: contain;
-}
-
-.brand-header .brand-logo {
-  height: 40px;
-  filter: contrast(1.05) saturate(1.02);
-}
-
 .brand-mark {
   width: 34px;
   height: 34px;
@@ -2123,13 +2110,13 @@ button {
 }
 
 @media (max-width: 520px) {
-  .brand-logo {
-    height: 34px;
-    max-width: 180px;
+  .brand-word {
+    font-size: 18px;
   }
 
-  .brand-header .brand-logo {
-    height: 36px;
+  .brand-mark {
+    width: 32px;
+    height: 32px;
   }
 
   .header-track {
