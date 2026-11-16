@@ -142,6 +142,32 @@ Test-Case "storefront keeps fee rows hidden-friendly when fee_percent is 0" {
   Assert-Match 'feePercent\(\) > 0' $js "fee row must be conditional on a non-zero fee"
 }
 
+Test-Case "product artwork layers over the gradient tile and falls back when missing" {
+  $js = Get-Content (Join-Path $Root "store.js") -Raw
+  $css = Get-Content (Join-Path $Root "store.css") -Raw
+  Assert-Match 'PRODUCT_IMAGE_DIR = "assets/products/"' $js "artwork directory constant"
+  Assert-Match 'onerror="this\.remove\(\)"' $js "broken image must remove itself"
+  Assert-Match 'function productArt\(' $js "shared artwork helper"
+  # Cards, the product hero and the checkout summary all use the helper.
+  Assert-True (([regex]::Matches($js, 'productArt\(product')).Count -ge 3) "productArt must render cards, hero and summary icon"
+  Assert-Match '\.product-thumb img,\s*\.product-hero-icon img,\s*\.summary-product-icon img' $css "artwork must be reachable from all three tiles"
+  Assert-Match 'object-fit: cover' $css "artwork must fill its tile"
+  Assert-Match '\.summary-product-icon \{[^}]*position: relative' $css "summary icon needs a positioned ancestor for the image"
+
+  # The live API always exposes the image field, even while it is still empty.
+  $catalog = Invoke-Catalog
+  $missing = @()
+  foreach ($category in $catalog.categories) {
+    foreach ($product in $category.products) {
+      if (-not ($product.PSObject.Properties.Name -contains "image")) { $missing += $product.slug }
+      elseif ([string]$product.image -ne "") {
+        Assert-Match '^[^\\/:]+\.(png|jpg|jpeg|webp)$' ([string]$product.image).ToLowerInvariant() "$($product.slug) image must be a bare filename"
+      }
+    }
+  }
+  Assert-Equal 0 $missing.Count "products without an image field (e.g. $($missing -join ', '))"
+}
+
 Write-Host ""
 Write-Host "Result: $script:Pass passed, $script:Fail failed" -ForegroundColor $(if ($script:Fail) { "Red" } else { "Green" })
 if ($script:Failures.Count) {

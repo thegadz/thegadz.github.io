@@ -27,9 +27,19 @@ function Read-XlsxFirstSheet([string]$path) {
       $reader.Close()
       [xml]$sst = $sstText
       foreach ($si in $sst.sst.si) {
-        if ($si.t) { $shared += [string]$si.t.'#text' + [string]$si.t }
-        elseif ($si.r) { $shared += ((@($si.r) | ForEach-Object { [string]$_.t }) -join "") }
-        else { $shared += "" }
+        if ($si.t) {
+          # A plain <si><t>text</t></si>. Casting $si.t gives the XmlElement's
+          # type name, so read the text node explicitly.
+          $pieces = @($si.t)
+          if ($pieces.Count -eq 1 -and $pieces[0] -is [System.Xml.XmlElement]) {
+            $shared += [string]$pieces[0].'#text'
+          } else {
+            $shared += (($pieces | ForEach-Object { [string]$_.'#text' }) -join "")
+          }
+        } elseif ($si.r) {
+          # Rich text: <si><r><t>a</t></r><r><t>b</t></r></si>
+          $shared += ((@($si.r) | ForEach-Object { [string]$_.t.'#text' }) -join "")
+        } else { $shared += "" }
       }
     }
 
@@ -56,7 +66,7 @@ function Read-XlsxFirstSheet([string]$path) {
           $idx = 0
           if ([int]::TryParse([string]$c.v, [ref]$idx) -and $idx -ge 0 -and $idx -lt $shared.Count) { $value = $shared[$idx] }
         } elseif ($type -eq "inlineStr") {
-          $value = [string]$c.is.t
+          $value = [string]$c.is.t.'#text'
         } else {
           $value = [string]$c.v
         }

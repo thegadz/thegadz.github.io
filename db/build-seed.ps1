@@ -74,11 +74,12 @@ foreach ($product in $products) {
 
   $values = "(" + (Sql $slug) + ", " + (Sql $name) + ", (SELECT id FROM categories WHERE slug=" + (Sql ([string]$product.category)) + "), " +
     (Sql ([string]$product.unit)) + ", " + (Sql $short) + ", " + (Sql ([string]$product.icon)) + ", " + (Sql ([string]$product.color)) + ", " +
+    (Sql ([string]([string]$product.image).Trim())) + ", " +
     (Sql $target) + ", " + [int]$product.requires_zone + ", " + (Sql $description) + ", 1, $sort)"
   $productValues += $values
 }
 
-$lines.Add("INSERT INTO products (slug, name, category_id, unit, short, icon, color, target_type, requires_zone, description, active, sort) VALUES")
+$lines.Add("INSERT INTO products (slug, name, category_id, unit, short, icon, color, image, target_type, requires_zone, description, active, sort) VALUES")
 $lines.Add(($productValues -join ",`n") + ";")
 $lines.Add("")
 

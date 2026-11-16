@@ -308,12 +308,29 @@
 
   /* ---------------------------------------------------------------- cards */
 
-  function productCard(product) {
+  var PRODUCT_IMAGE_DIR = "assets/products/";
+
+  // Real artwork when the admin has uploaded it, gradient + emoji otherwise.
+  // The <img> is layered over the gradient so a missing or broken file simply
+  // reveals the designed fallback instead of a broken-image icon.
+  function productArt(product, className, tag) {
     var color = safeColor(product.color);
+    tag = tag || "span";
+    var icon = '<span class="thumb-icon">' + esc(product.icon || "🎮") + "</span>";
+    var image = String(product.image || "").trim();
+    var img = "";
+    if (image) {
+      img = '<img src="' + esc(PRODUCT_IMAGE_DIR + image) + '" alt="' + esc(product.name) + '" ' +
+        'loading="lazy" decoding="async" onerror="this.remove()" />';
+    }
+    return "<" + tag + ' class="' + className + '" style="background:linear-gradient(150deg,' + color + "," + shade(color, -34) + ')">' +
+      img + icon +
+    "</" + tag + ">";
+  }
+
+  function productCard(product) {
     return '<a class="product-card" href="#/produk/' + esc(product.slug) + '" title="' + esc(product.name) + '">' +
-      '<span class="product-thumb" style="background:linear-gradient(150deg,' + color + "," + shade(color, -34) + ')">' +
-        '<span class="thumb-icon">' + esc(product.icon || "🎮") + "</span>" +
-      "</span>" +
+      productArt(product, "product-thumb") +
       '<span class="product-name">' + esc(product.name) + "</span>" +
     "</a>";
   }
@@ -510,8 +527,7 @@
         '<div class="product-layout">' +
           '<div class="product-main">' +
             '<section class="product-hero" style="--soft:' + color + '22">' +
-              '<div class="product-hero-icon" style="background:linear-gradient(150deg,' + color + "," + shade(color, -34) + ')">' +
-                esc(product.icon || "🎮") + "</div>" +
+              productArt(product, "product-hero-icon", "div") +
               '<div class="product-hero-body">' +
                 '<span class="eyebrow">' + esc(product.category_name) + "</span>" +
                 "<h1>" + esc(product.name) + "</h1>" +
@@ -550,7 +566,7 @@
           '<aside class="summary-card">' +
             '<h2>Ringkasan Pesanan</h2>' +
             '<div class="summary-product">' +
-              '<span class="summary-product-icon" style="background:linear-gradient(150deg,' + color + "," + shade(color, -34) + ')">' + esc(product.icon || "🎮") + "</span>" +
+              productArt(product, "summary-product-icon") +
               "<div><b>" + esc(product.name) + "</b><small>" + esc(product.unit || product.category_name) + "</small></div>" +
             "</div>" +
             '<div class="summary-row"><span>Nominal</span><span id="sumDenom">' + esc(selected.label) + "</span></div>" +

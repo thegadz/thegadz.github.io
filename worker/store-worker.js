@@ -266,6 +266,7 @@ function productJson(row) {
     short: row.short,
     icon: row.icon,
     color: row.color,
+    image: row.image || "",
     target_type: row.target_type || "player",
     requires_zone: !!row.requires_zone,
     description: row.description,
@@ -461,7 +462,7 @@ async function handleCatalog(env) {
   const rows = await dbAll(
     env,
     `SELECT c.slug AS category_slug, c.name AS category_name, c.sort AS category_sort,
-            p.id, p.slug, p.name, p.unit, p.short, p.icon, p.color, p.target_type,
+            p.id, p.slug, p.name, p.unit, p.short, p.icon, p.color, p.image, p.target_type,
             p.requires_zone, p.description, p.sort AS product_sort
      FROM categories c
      JOIN products p ON p.category_id = c.id AND p.active = 1

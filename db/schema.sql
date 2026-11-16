@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS products (
   short TEXT NOT NULL DEFAULT '',
   icon TEXT NOT NULL DEFAULT '🎮',
   color TEXT NOT NULL DEFAULT '#0f766e',
+  image TEXT NOT NULL DEFAULT '',
   target_type TEXT NOT NULL DEFAULT 'player',
   requires_zone INTEGER NOT NULL DEFAULT 0,
   description TEXT NOT NULL DEFAULT '',

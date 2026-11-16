@@ -86,27 +86,35 @@ foreach ($sql in $schemaStatements) { [void](Invoke-D1 $sql) }
 Write-Host "  $($schemaStatements.Count) statements applied" -ForegroundColor Green
 
 # ADD COLUMN migrations: SQLite has no IF NOT EXISTS for columns, so inspect first.
-Write-Host "Checking order columns..." -ForegroundColor Cyan
-$proofColumns = [ordered]@{
-  proof_data          = "TEXT"
-  proof_mime          = "TEXT NOT NULL DEFAULT ''"
-  proof_size          = "INTEGER NOT NULL DEFAULT 0"
-  proof_sender        = "TEXT NOT NULL DEFAULT ''"
-  proof_note          = "TEXT NOT NULL DEFAULT ''"
-  proof_uploaded_at   = "TEXT"
-  proof_rejected_at   = "TEXT"
-  proof_reject_reason = "TEXT NOT NULL DEFAULT ''"
+$migrations = [ordered]@{
+  orders   = [ordered]@{
+    proof_data          = "TEXT"
+    proof_mime          = "TEXT NOT NULL DEFAULT ''"
+    proof_size          = "INTEGER NOT NULL DEFAULT 0"
+    proof_sender        = "TEXT NOT NULL DEFAULT ''"
+    proof_note          = "TEXT NOT NULL DEFAULT ''"
+    proof_uploaded_at   = "TEXT"
+    proof_rejected_at   = "TEXT"
+    proof_reject_reason = "TEXT NOT NULL DEFAULT ''"
+  }
+  products = [ordered]@{
+    image = "TEXT NOT NULL DEFAULT ''"
+  }
 }
-$info = Invoke-D1 "PRAGMA table_info(orders)"
-$existing = @($info.result[0].results | ForEach-Object { $_.name })
-$added = 0
-foreach ($name in $proofColumns.Keys) {
-  if ($existing -contains $name) { continue }
-  [void](Invoke-D1 "ALTER TABLE orders ADD COLUMN $name $($proofColumns[$name])")
-  Write-Host "  added column $name" -ForegroundColor DarkGray
-  $added++
+foreach ($table in $migrations.Keys) {
+  $columns = $migrations[$table]
+  Write-Host "Checking $table columns..." -ForegroundColor Cyan
+  $info = Invoke-D1 "PRAGMA table_info($table)"
+  $existing = @($info.result[0].results | ForEach-Object { $_.name })
+  $added = 0
+  foreach ($name in $columns.Keys) {
+    if ($existing -contains $name) { continue }
+    [void](Invoke-D1 "ALTER TABLE $table ADD COLUMN $name $($columns[$name])")
+    Write-Host "  added column $name" -ForegroundColor DarkGray
+    $added++
+  }
+  Write-Host "  $added column(s) added, $($columns.Count - $added) already present" -ForegroundColor Green
 }
-Write-Host "  $added column(s) added, $($proofColumns.Count - $added) already present" -ForegroundColor Green
 
 if (-not $SkipSeed) {
   Write-Host "Applying catalog seed..." -ForegroundColor Cyan
