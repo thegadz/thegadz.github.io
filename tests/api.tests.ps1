@@ -394,6 +394,167 @@ Test-Case "qris preview rejects a malformed payload" {
   Assert-Equal 400 $r.Status "malformed qris"
 }
 
+# ---------------------------------------------------------------- payment proof
+Add-Type -AssemblyName System.Net.Http
+
+function New-ProofForm([byte[]]$Bytes, [string]$FileName = "bukti.png", [string]$Sender = "Tester") {
+  $content = New-Object System.Net.Http.MultipartFormDataContent
+  $fileContent = New-Object System.Net.Http.ByteArrayContent(,$Bytes)
+  $fileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("application/octet-stream")
+  [void]$content.Add($fileContent, "proof", $FileName)
+  if ($Sender) {
+    $senderContent = New-Object System.Net.Http.StringContent($Sender)
+    [void]$content.Add($senderContent, "sender")
+  }
+  # Unary comma: MultipartFormDataContent is IEnumerable, so a bare return would
+  # unroll into its child contents and lose the HttpContent type.
+  return ,$content
+}
+
+function Invoke-ProofUpload {
+  param([string]$PublicId, [byte[]]$Bytes, [string]$FileName = "bukti.png", [string]$Sender = "Tester")
+  [byte[]]$bytes = $Bytes
+  [System.Net.Http.HttpContent]$content = New-ProofForm $bytes $FileName $Sender
+  $client = New-Object System.Net.Http.HttpClient
+  $client.Timeout = [TimeSpan]::FromSeconds(45)
+  try {
+    $res = $client.PostAsync("$ApiBase/api/orders/$PublicId/proof", $content).GetAwaiter().GetResult()
+    $raw = $res.Content.ReadAsStringAsync().Result
+    $json = $null
+    try { $json = $raw | ConvertFrom-Json } catch {}
+    return [pscustomobject]@{ Status = [int]$res.StatusCode; Json = $json; Raw = $raw; Headers = $res.Headers }
+  } finally {
+    $client.Dispose()
+    $content.Dispose()
+  }
+}
+
+# Minimal but structurally valid PNG signature + IHDR so magic-byte sniffing accepts it.
+function New-PngBytes([int]$Size = 2048) {
+  $bytes = New-Object byte[] $Size
+  $header = [byte[]](0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+  [Array]::Copy($header, $bytes, $header.Length)
+  $tail = [byte[]](0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52)
+  [Array]::Copy($tail, 0, $bytes, 8, $tail.Length)
+  for ($i = 16; $i -lt $Size; $i++) { $bytes[$i] = [byte](($i * 7) % 251) }
+  return ,$bytes
+}
+
+$script:PaymentConfig = (Invoke-Api -Path "/api/config").Json.payment
+
+Test-Case "config advertises the payment mode and proof cap" {
+  $p = $script:PaymentConfig
+  Assert-True ($null -ne $p) "payment block missing from /api/config"
+  Assert-True ($p.mode -in @("demo", "manual")) "payment mode invalid"
+  Assert-True ($p.methods -contains "QRIS") "QRIS must always be a payment method"
+  Assert-True ($null -ne $p.proof_upload) "proof_upload flag missing"
+  Assert-True ($p.max_proof_bytes -gt 0) "max_proof_bytes missing"
+  Assert-True ($p.max_proof_bytes -le 687761) "max_proof_bytes exceeds the D1-safe cap"
+  Assert-Equal ($p.mode -eq "manual") $p.proof_upload "proof_upload must follow manual mode"
+}
+
+Test-Case "manual mode hides the QRIS demo button" {
+  $config = (Invoke-Api -Path "/api/config").Json
+  $denom = $script:Product.denominations[4]
+  $created = Invoke-Api -Method POST -Path "/api/orders" -Body @{
+    product_slug = "mobile-legends"; denomination_id = $denom.id; player_id = "88291038"; zone_id = "2145"
+  }
+  Assert-Equal 201 $created.Status "create guard order"
+  if ($config.payment.mode -eq "manual") {
+    Assert-Equal $false $config.demo "demo flag must be off in manual mode"
+    $r = Invoke-Api -Method POST -Path "/api/orders/$($created.Json.order.public_id)/demo-paid" -Body @{}
+    Assert-Equal 403 $r.Status "demo-paid must be refused"
+    Assert-Equal "demo_disabled" $r.Json.error "demo-paid error code"
+    $lookup = Invoke-Api -Path "/api/orders/$($created.Json.order.public_id)"
+    Assert-Equal "pending" $lookup.Json.order.status "order must stay pending"
+    Assert-Equal $null $lookup.Json.order.qr_payload "manual mode must not issue an amount payload"
+  } else {
+    Assert-Equal $false $config.payment.proof_upload "proof_upload must be off in demo mode"
+  }
+  Invoke-Api -Method POST -Path "/api/admin/orders/$($created.Json.order.public_id)/cancel" -Headers (Get-AdminHeaders) -Body @{} | Out-Null
+}
+
+Test-Case "proof routes are gated by manual mode" {
+  $denom = $script:Product.denominations[0]
+  $created = Invoke-Api -Method POST -Path "/api/orders" -Body @{
+    product_slug = "mobile-legends"; denomination_id = $denom.id; player_id = "88291039"; zone_id = "2145"
+  }
+  Assert-Equal 201 $created.Status "create proof-gate order"
+  $id = $created.Json.order.public_id
+  $upload = Invoke-ProofUpload -PublicId $id -Bytes (New-PngBytes 4096)
+  $get = Invoke-Api -Path "/api/orders/$id/proof"
+  if ($script:PaymentConfig.mode -eq "manual") {
+    Assert-Equal 200 $upload.Status "proof upload should succeed in manual mode"
+    Assert-Equal "image/png" $upload.Json.order.proof.mime "sniffed mime"
+    Assert-Equal 200 $get.Status "proof fetch should succeed"
+    $delete = Invoke-Api -Method DELETE -Path "/api/orders/$id/proof"
+    Assert-Equal 200 $delete.Status "proof delete should succeed"
+    Assert-Equal $null $delete.Json.order.proof "proof should be cleared"
+  } else {
+    Assert-Equal 403 $upload.Status "proof upload must be refused in demo mode"
+    Assert-Equal "proof_disabled" $upload.Json.error "disabled error code"
+    Assert-Equal 404 $get.Status "no proof should be stored"
+  }
+  Invoke-Api -Method POST -Path "/api/admin/orders/$id/cancel" -Headers (Get-AdminHeaders) -Body @{} | Out-Null
+}
+
+Test-Case "proof upload validates type and size before storing" {
+  if ($script:PaymentConfig.mode -ne "manual") {
+    # Demo mode refuses every upload, so the type/size guards cannot be reached over HTTP.
+    Assert-Equal $false $script:PaymentConfig.proof_upload "proof_upload must be off in demo mode"
+    return
+  }
+  $denom = $script:Product.denominations[1]
+  $created = Invoke-Api -Method POST -Path "/api/orders" -Body @{
+    product_slug = "mobile-legends"; denomination_id = $denom.id; player_id = "88291040"; zone_id = "2145"
+  }
+  $id = $created.Json.order.public_id
+  $bogus = [Text.Encoding]::ASCII.GetBytes("this is definitely not an image at all")
+  $bad = Invoke-ProofUpload -PublicId $id -Bytes $bogus -FileName "evil.png"
+  Assert-Equal 415 $bad.Status "unsupported type"
+  Assert-Equal "unsupported_proof" $bad.Json.error "unsupported error code"
+  $huge = New-PngBytes ($script:PaymentConfig.max_proof_bytes + 4096)
+  $big = Invoke-ProofUpload -PublicId $id -Bytes $huge -FileName "big.png"
+  Assert-Equal 413 $big.Status "oversized proof"
+  Assert-Equal "proof_too_large" $big.Json.error "oversized error code"
+  Invoke-Api -Method POST -Path "/api/admin/orders/$id/cancel" -Headers (Get-AdminHeaders) -Body @{} | Out-Null
+}
+
+Test-Case "proof can be rejected with a reason and re-uploaded" {
+  if ($script:PaymentConfig.mode -ne "manual") {
+    Assert-Equal $false $script:PaymentConfig.proof_upload "proof_upload must be off in demo mode"
+    return
+  }
+  $denom = $script:Product.denominations[2]
+  $created = Invoke-Api -Method POST -Path "/api/orders" -Body @{
+    product_slug = "mobile-legends"; denomination_id = $denom.id; player_id = "88291041"; zone_id = "2145"
+  }
+  $id = $created.Json.order.public_id
+  $first = Invoke-ProofUpload -PublicId $id -Bytes (New-PngBytes 3072)
+  Assert-Equal 200 $first.Status "first proof upload"
+  Assert-True ($null -ne $first.Json.order.proof) "proof should be attached"
+  Assert-True ($null -eq $first.Json.order.proof_rejection) "no rejection yet"
+  $list = Invoke-Api -Path "/api/admin/orders?limit=200" -Headers (Get-AdminHeaders)
+  $row = @($list.Json.orders | Where-Object { $_.public_id -eq $id })[0]
+  Assert-True ($null -ne $row) "order missing from admin list"
+  Assert-True ($row.proof_uploaded_at.Length -gt 0) "admin list must expose proof_uploaded_at"
+  Assert-True (-not ($row.PSObject.Properties.Name -contains "proof_data")) "admin list must not leak proof bytes"
+  $reject = Invoke-Api -Method POST -Path "/api/admin/orders/$id/reject-proof" -Headers (Get-AdminHeaders) -Body @{ reason = "Nominal tidak sesuai" }
+  Assert-Equal 200 $reject.Status "reject proof"
+  Assert-Equal $null $reject.Json.order.proof "proof should be cleared after reject"
+  Assert-Equal "Nominal tidak sesuai" $reject.Json.order.proof_rejection.reason "rejection reason"
+  $reupload = Invoke-ProofUpload -PublicId $id -Bytes (New-PngBytes 5120) -Sender "Tester 2"
+  Assert-Equal 200 $reupload.Status "re-upload after reject"
+  Assert-True ($null -ne $reupload.Json.order.proof) "new proof should be attached"
+  Assert-Equal $null $reupload.Json.order.proof_rejection "rejection should be cleared on re-upload"
+  $pay = Invoke-Api -Method POST -Path "/api/admin/orders/$id/paid" -Headers (Get-AdminHeaders) -Body @{ reference = "proof-flow" }
+  Assert-Equal 200 $pay.Status "mark paid after verified proof"
+  Assert-Equal "paid" $pay.Json.order.status "paid status"
+  $done = Invoke-Api -Method POST -Path "/api/admin/orders/$id/fulfill" -Headers (Get-AdminHeaders) -Body @{}
+  Assert-Equal 200 $done.Status "fulfill after paid"
+  Assert-Equal "fulfilled" $done.Json.order.status "fulfilled status"
+}
+
 Write-Host ""
 Write-Host "Result: $($script:Pass) passed, $($script:Fail) failed" -ForegroundColor $(if ($script:Fail -eq 0) { "Green" } else { "Red" })
 if ($script:Fail -gt 0) {
