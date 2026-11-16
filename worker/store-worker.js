@@ -1,10 +1,17 @@
 // TheGadz Store API worker.
-// Cloudflare Worker + D1. Public storefront API, admin API, QRIS demo/static payments.
+// Cloudflare Worker + D1. Public storefront API, admin API, QRIS payments.
+//
+// Two payment modes:
+//   static - manual: the buyer scans the shop's own GoPay QRIS (QRIS_STATIC_PAYLOAD
+//            with the order total injected), uploads proof, the admin verifies it
+//            and marks the order paid. No gateway, no callback, no fees.
+//   demo   - no QRIS configured: QR payload is a placeholder and payments can only
+//            be simulated. Never used in production.
 //
 // Bindings expected:
 //   DB (D1), ADMIN_TOKEN (secret), QRIS_WEBHOOK_SECRET (secret),
 //   QRIS_STATIC_PAYLOAD (secret), QRIS_FEE_PERCENT, ORDER_TTL_SECONDS,
-//   DEMO_MODE, STORE_NAME
+//   DEMO_MODE, STORE_NAME, PAYMENT_HOLD_SECONDS, MAX_PROOF_BYTES
 
 const JSON_TYPE = "application/json; charset=utf-8";
 const ORDER_STATUSES = ["pending", "paid", "fulfilled", "expired", "cancelled"];
@@ -20,7 +27,7 @@ class HttpError extends Error {
 function cors() {
   return {
     "access-control-allow-origin": "*",
-    "access-control-allow-methods": "GET,POST,OPTIONS",
+    "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
     "access-control-allow-headers": "content-type,authorization,x-signature",
     "access-control-max-age": "86400",
   };
@@ -82,6 +89,26 @@ function demoMode(env) {
 
 function qrisMode(env) {
   return String(env.QRIS_STATIC_PAYLOAD || "").trim() ? "static" : "demo";
+}
+
+function paymentMode(env) {
+  if (qrisMode(env) !== "static") return "demo";
+  return demoMode(env) ? "demo" : "manual";
+}
+
+function proofsEnabled(env) {
+  return paymentMode(env) === "manual";
+}
+
+function paymentHoldSeconds(env) {
+  return Math.max(60, Math.floor(envNumber(env, "PAYMENT_HOLD_SECONDS", 86400)));
+}
+
+// Effective cap is the env value, but never more than a D1 row can hold once base64 encoded.
+function maxProofBytes(env) {
+  const configured = Math.floor(envNumber(env, "MAX_PROOF_BYTES", 900 * 1024));
+  const d1Safe = Math.floor((900 * 1024) / 1.34);
+  return Math.min(d1Safe, Math.max(4096, configured));
 }
 
 function safeEqual(a, b) {
@@ -180,6 +207,21 @@ function makePublicId() {
   return "TG" + body;
 }
 
+function proofJson(row) {
+  return {
+    uploaded_at: row.proof_uploaded_at,
+    mime: row.proof_mime,
+    size: row.proof_size,
+    sender: row.proof_sender,
+    url: "/api/orders/" + row.public_id + "/proof",
+  };
+}
+
+function rejectionJson(row) {
+  if (!row.proof_rejected_at) return null;
+  return { rejected_at: row.proof_rejected_at, reason: row.proof_reject_reason || "" };
+}
+
 function orderJson(row, events) {
   const data = {
     public_id: row.public_id,
@@ -200,6 +242,8 @@ function orderJson(row, events) {
     fulfilled_at: row.fulfilled_at,
     supplier_ref: row.supplier_ref,
     created_at: row.created_at,
+    proof: row.proof_uploaded_at ? proofJson(row) : null,
+    proof_rejection: rejectionJson(row),
   };
   if (events) {
     data.events = events.map((event) => ({
@@ -347,6 +391,13 @@ async function route(request, env, url) {
       {
         store: { name: storeName(env), currency: "IDR", locale: "id-ID" },
         qris: { mode: qrisMode(env), fee_percent: feePercent(env), payment_method: "QRIS" },
+        payment: {
+          mode: paymentMode(env),
+          methods: paymentMode(env) === "manual" ? ["QRIS"] : ["QRIS", "DEMO"],
+          proof_upload: proofsEnabled(env),
+          max_proof_bytes: maxProofBytes(env),
+          hold_seconds: paymentHoldSeconds(env),
+        },
         demo: demoMode(env),
         order_ttl_seconds: orderTtlSeconds(env),
       },
@@ -368,6 +419,16 @@ async function route(request, env, url) {
   if (demoPaidMatch && method === "POST") {
     return handleDemoPaid(env, demoPaidMatch[1]);
   }
+  const proofMatch = path.match(/^\/api\/orders\/(TG[A-Z0-9]{6,12})\/proof$/);
+  if (proofMatch && method === "POST") {
+    return handleUploadProof(request, env, proofMatch[1]);
+  }
+  if (proofMatch && method === "GET") {
+    return handleGetProof(env, proofMatch[1]);
+  }
+  if (proofMatch && method === "DELETE") {
+    return handleDeleteProof(env, proofMatch[1]);
+  }
   const orderMatch = path.match(/^\/api\/orders\/(TG[A-Z0-9]{6,12})$/);
   if (orderMatch && method === "GET") {
     return handleGetOrder(env, orderMatch[1]);
@@ -382,7 +443,9 @@ async function route(request, env, url) {
   if (adminOrderMatch && method === "GET") {
     return handleAdminOrder(env, adminOrderMatch[1]);
   }
-  const adminActionMatch = path.match(/^\/api\/admin\/orders\/(TG[A-Z0-9]{6,12})\/(paid|fulfill|cancel)$/);
+  const adminActionMatch = path.match(
+    /^\/api\/admin\/orders\/(TG[A-Z0-9]{6,12})\/(paid|reject-proof|cancel|fulfill)$/
+  );
   if (adminActionMatch && method === "POST") {
     return handleAdminAction(request, env, adminActionMatch[1], adminActionMatch[2]);
   }
@@ -501,7 +564,9 @@ async function handleCreateOrder(request, env) {
   const fee = Math.round((subtotal * feePercent(env)) / 100);
   const total = subtotal + fee;
   const createdAt = nowIso();
-  const expiresAt = new Date(Date.now() + orderTtlSeconds(env) * 1000).toISOString();
+  const expiresAt = new Date(
+    Date.now() + (proofsEnabled(env) ? paymentHoldSeconds(env) : orderTtlSeconds(env)) * 1000
+  ).toISOString();
 
   let publicId = "";
   for (let attempt = 0; attempt < 6; attempt++) {
@@ -589,7 +654,7 @@ async function handleGetOrder(env, publicId) {
 }
 
 async function handleDemoPaid(env, publicId) {
-  if (!demoMode(env)) {
+  if (paymentMode(env) !== "demo") {
     throw new HttpError(403, "demo_disabled", "Pembayaran demo tidak aktif.");
   }
   let order = await getOrderRow(env, publicId);
@@ -628,6 +693,145 @@ async function transitionPaid(env, order, message) {
   );
   await addEvent(env, order.id, "paid", message || "Pembayaran QRIS dikonfirmasi.");
   return getOrderRow(env, order.public_id);
+}
+
+/* ------------------------------------------------------------ proof upload */
+
+// Buyers upload proof themselves, so this is stored as bytes in D1 (base64).
+// D1 caps a row at ~1 MB of JSON, so the hard limit stays well below that.
+const PROOF_MIME_BYTES = {
+  "image/jpeg": [0xff, 0xd8, 0xff],
+  "image/png": [0x89, 0x50, 0x4e, 0x47],
+  "image/webp": null, // RIFF....WEBP
+  "application/pdf": [0x25, 0x50, 0x44, 0x46],
+};
+const PROOF_D1_LIMIT = 900 * 1024; // base64 payload must stay under D1's ~1 MB row value
+
+function detectProofType(bytes) {
+  if (bytes.length < 12) return "";
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+  const riff = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+  const webp = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+  if (riff === "RIFF" && webp === "WEBP") return "image/webp";
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
+  return "";
+}
+
+function bytesToBase64(bytes) {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(text) {
+  const binary = atob(text);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function loadUploadableOrder(env, publicId) {
+  let order = await getOrderRow(env, publicId);
+  if (!order) throw new HttpError(404, "order_not_found", "Pesanan tidak ditemukan.");
+  order = await expireIfNeeded(env, order);
+  if (order.status === "pending" || order.status === "paid") return order;
+  if (order.status === "expired") {
+    throw new HttpError(409, "order_expired", "Waktu pembayaran habis. Silakan buat pesanan baru.");
+  }
+  throw new HttpError(409, "invalid_status", "Pesanan tidak bisa diubah pada status ini.");
+}
+
+async function handleUploadProof(request, env, publicId) {
+  if (!proofsEnabled(env)) {
+    throw new HttpError(403, "proof_disabled", "Unggah bukti pembayaran tidak aktif.");
+  }
+  const upload = await request.formData();
+  const file = upload.get("proof");
+  const sender = upload.get("sender");
+  const note = upload.get("note");
+  if (!file || typeof file === "string") {
+    throw new HttpError(400, "missing_proof", "Pilih foto bukti pembayaran terlebih dahulu.");
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!bytes.length) throw new HttpError(400, "empty_proof", "File bukti kosong.");
+  if (bytes.length > maxProofBytes(env)) {
+    throw new HttpError(
+      413,
+      "proof_too_large",
+      "Ukuran bukti terlalu besar. Maksimal " + Math.round(maxProofBytes(env) / 1024) + " KB."
+    );
+  }
+  const mime = detectProofType(bytes);
+  if (!mime) {
+    throw new HttpError(415, "unsupported_proof", "Format harus JPG, PNG, WEBP, atau PDF.");
+  }
+
+  const order = await loadUploadableOrder(env, publicId);
+  const now = nowIso();
+  await dbRun(
+    env,
+    `UPDATE orders SET proof_data = ?, proof_mime = ?, proof_size = ?, proof_sender = ?, proof_note = ?,
+       proof_uploaded_at = ?, proof_rejected_at = NULL, proof_reject_reason = '', updated_at = ?
+     WHERE id = ?`,
+    [
+      bytesToBase64(bytes),
+      mime,
+      bytes.length,
+      sanitizeText(sender, 60),
+      sanitizeText(note, 200),
+      now,
+      now,
+      order.id,
+    ]
+  );
+  await addEvent(
+    env,
+    order.id,
+    "proof_uploaded",
+    "Bukti pembayaran diunggah. Menunggu verifikasi admin."
+  );
+  const row = await getOrderRow(env, publicId);
+  return json({ order: orderJson(row, await getOrderEvents(env, row.id)) }, 200, env);
+}
+
+async function handleGetProof(env, publicId) {
+  const order = await getOrderRow(env, publicId);
+  if (!order) throw new HttpError(404, "order_not_found", "Pesanan tidak ditemukan.");
+  if (!order.proof_data) throw new HttpError(404, "proof_not_found", "Belum ada bukti pembayaran.");
+  return new Response(base64ToBytes(order.proof_data), {
+    status: 200,
+    headers: {
+      "content-type": order.proof_mime || "application/octet-stream",
+      "content-disposition": 'inline; filename="bukti-' + order.public_id + '"',
+      "cache-control": "private, no-store",
+      "x-content-type-options": "nosniff",
+      "content-security-policy": "default-src 'none'; sandbox",
+      "referrer-policy": "no-referrer",
+      ...cors(),
+    },
+  });
+}
+
+async function handleDeleteProof(env, publicId) {
+  const order = await loadUploadableOrder(env, publicId);
+  if (order.status !== "pending" || !order.proof_data) {
+    throw new HttpError(409, "invalid_status", "Bukti tidak bisa dihapus pada status ini.");
+  }
+  const now = nowIso();
+  await dbRun(
+    env,
+    `UPDATE orders SET proof_data = NULL, proof_mime = '', proof_size = 0, proof_sender = '',
+       proof_note = '', proof_uploaded_at = NULL, proof_rejected_at = NULL, proof_reject_reason = '',
+       updated_at = ? WHERE id = ?`,
+    [now, order.id]
+  );
+  await addEvent(env, order.id, "proof_removed", "Bukti pembayaran dihapus untuk diunggah ulang.");
+  const row = await getOrderRow(env, publicId);
+  return json({ order: orderJson(row, await getOrderEvents(env, row.id)) }, 200, env);
 }
 
 async function handleWebhook(request, env) {
@@ -693,7 +897,11 @@ async function handleAdminList(env, url) {
     [now, now]
   );
 
-  let sql = "SELECT * FROM orders";
+  let sql =
+    "SELECT id, public_id, product_slug, product_name, denomination_label, player_id, zone_id, nickname, " +
+    "subtotal, fee, total, payment_method, status, qr_payload, expires_at, paid_at, fulfilled_at, supplier_ref, " +
+    "created_at, proof_mime, proof_size, proof_sender, proof_uploaded_at, proof_rejected_at, proof_reject_reason " +
+    "FROM orders";
   const params = [];
   if (ORDER_STATUSES.includes(status)) {
     sql += " WHERE status = ?";
@@ -740,6 +948,24 @@ async function handleAdminAction(request, env, publicId, action) {
       [now, supplierRef, now, order.id]
     );
     await addEvent(env, order.id, "fulfilled", "Pesanan diproses." + (supplierRef ? " Ref supplier: " + supplierRef : ""));
+    order = await getOrderRow(env, publicId);
+  } else if (action === "reject-proof") {
+    if (!order.proof_data && !order.proof_uploaded_at) {
+      throw new HttpError(409, "proof_not_found", "Belum ada bukti pembayaran untuk ditolak.");
+    }
+    if (order.status === "fulfilled" || order.status === "cancelled") {
+      throw new HttpError(409, "invalid_status", "Bukti tidak bisa ditolak pada status ini.");
+    }
+    const reason = sanitizeText(body.reason, 200) || "Bukti pembayaran tidak sesuai. Silakan unggah ulang.";
+    const now = nowIso();
+    await dbRun(
+      env,
+      `UPDATE orders SET proof_data = NULL, proof_mime = '', proof_size = 0, proof_sender = '', proof_note = '',
+         proof_uploaded_at = NULL, proof_rejected_at = ?, proof_reject_reason = ?, updated_at = ?
+       WHERE id = ?`,
+      [now, reason, now, order.id]
+    );
+    await addEvent(env, order.id, "proof_rejected", "Bukti pembayaran ditolak: " + reason);
     order = await getOrderRow(env, publicId);
   } else if (action === "cancel") {
     if (order.status === "cancelled") {
@@ -833,6 +1059,14 @@ function adminPage() {
   .actions .go{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}
   .actions .done{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
   .actions .no{color:var(--red)}
+  .proof{margin-top:10px;padding:10px;border:1px dashed var(--line);border-radius:10px;background:#f8fafc;display:flex;gap:12px;align-items:flex-start}
+  .proof img{width:96px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#fff;display:block}
+  .proof .pdf{width:96px;height:96px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:800;color:var(--red);font-size:12px}
+  .proof .meta{flex:1;min-width:0}.proof .meta b{font-size:13px}
+  .proof .meta div{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
+  .proof .meta a{color:var(--blue)}
+  .proof.waiting{border-color:#fcd34d;background:#fffbeb}
+  .rej{margin-top:8px;font-size:12px;color:var(--red)}
   .empty{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:32px;text-align:center;color:var(--muted)}
   @media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}main{padding:14px}}
 </style>
@@ -921,14 +1155,38 @@ function adminPage() {
   }
   function actionButtons(o) {
     var html = "";
+    var proof = o.proof || null;
     if (o.status === "pending") {
-      html += '<button class="go" data-act="paid" data-id="' + esc(o.public_id) + '">Tandai lunas</button>';
+      if (proof) html += '<button class="go" data-act="paid" data-id="' + esc(o.public_id) + '">Tandai lunas</button>';
+      if (proof) html += '<button data-act="reject-proof" data-id="' + esc(o.public_id) + '">Tolak bukti</button>';
       html += '<button class="no" data-act="cancel" data-id="' + esc(o.public_id) + '">Batalkan</button>';
     } else if (o.status === "paid") {
-      html += '<button class="done" data-act="fulfill" data-id="' + esc(o.public_id) + '">Selesai / kirim</button>';
+      html += '<button class="done" data-act="fulfill" data-id="' + esc(o.public_id) + '">Proses / kirim</button>';
       html += '<button class="no" data-act="cancel" data-id="' + esc(o.public_id) + '">Batalkan</button>';
     }
     return html;
+  }
+  function proofBlock(o) {
+    var p = o.proof;
+    var rej = o.proof_rejection;
+    if (!p) {
+      if (rej && o.status === "pending") {
+        return '<div class="rej">Bukti terakhir ditolak ' + esc(when(rej.rejected_at)) + ': ' + esc(rej.reason) + '</div>';
+      }
+      return "";
+    }
+    var isPdf = /pdf/i.test(p.mime || "");
+    var media = isPdf
+      ? '<a class="pdf" href="' + esc(p.url) + '" target="_blank" rel="noopener">PDF</a>'
+      : '<a href="' + esc(p.url) + '" target="_blank" rel="noopener"><img src="' + esc(p.url) + '" alt="Bukti pembayaran" loading="lazy" /></a>';
+    var sizeKb = Math.max(1, Math.round((p.size || 0) / 1024));
+    return '<div class="proof' + (o.status === "pending" ? " waiting" : "") + '">' + media +
+      '<div class="meta"><b>Bukti pembayaran</b>' +
+      '<div>Dikirim: ' + esc(when(p.uploaded_at)) + ' · ' + sizeKb + ' KB</div>' +
+      '<div>Nama pengirim: ' + esc(p.sender || "-") + '</div>' +
+      (p.note ? '<div>Catatan: ' + esc(p.note) + '</div>' : '') +
+      '<div><a href="' + esc(p.url) + '" target="_blank" rel="noopener">Buka file asli</a></div>' +
+      '</div></div>';
   }
   function card(o) {
     var target = esc(o.player_id) + (o.zone_id ? " · Zone " + esc(o.zone_id) : "");
@@ -938,6 +1196,7 @@ function adminPage() {
       '<p>Tujuan: ' + target + (o.nickname ? ' · ' + esc(o.nickname) : '') + '</p>' +
       '<p>' + when(o.created_at) + (o.expires_at && o.status === 'pending' ? ' · kedaluwarsa ' + when(o.expires_at) : '') + '</p>' +
       '<p class="total">' + rupiah(o.total) + '</p>' +
+      proofBlock(o) +
       '<div class="actions">' + actionButtons(o) + '</div>' +
     '</article>';
   }
@@ -974,6 +1233,11 @@ function adminPage() {
       var ref = prompt("Referensi supplier / catatan (opsional):", "");
       if (ref === null) return;
       body.supplier_ref = ref;
+    }
+    if (act === "reject-proof") {
+      var reason = prompt("Alasan bukti ditolak (dilihat pembeli):", "Nominal tidak sesuai / bukti tidak terbaca");
+      if (reason === null) return;
+      body.reason = reason;
     }
     if (act === "cancel" && !confirm("Batalkan pesanan " + id + "?")) return;
     $("notice").textContent = "Memproses " + id + "...";

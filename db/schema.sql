@@ -61,6 +61,14 @@ CREATE TABLE IF NOT EXISTS orders (
   paid_at TEXT,
   fulfilled_at TEXT,
   supplier_ref TEXT,
+  proof_data TEXT,
+  proof_mime TEXT NOT NULL DEFAULT '',
+  proof_size INTEGER NOT NULL DEFAULT 0,
+  proof_sender TEXT NOT NULL DEFAULT '',
+  proof_note TEXT NOT NULL DEFAULT '',
+  proof_uploaded_at TEXT,
+  proof_rejected_at TEXT,
+  proof_reject_reason TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );

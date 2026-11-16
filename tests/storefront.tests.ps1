@@ -126,6 +126,22 @@ Test-Case "home product cards are icon-and-name only, 5 columns" {
   Assert-Match 'repeat\(5, 142px\)' $css "five 142px product columns"
 }
 
+Test-Case "pending order shows the real GoPay standee QR with a manual-amount note" {
+  $js = Get-Content (Join-Path $Root "store.js") -Raw
+  Assert-Match 'assets/qris/gopay-standee\.png' $js "standee QR asset path"
+  Assert-Match 'qr-note' $js "manual-amount notice"
+  Assert-Match 'qr-code-image' $js "image QR class"
+  $standee = Join-Path $Root "assets/qris/gopay-standee.png"
+  Assert-True (Test-Path $standee) "standee QR file missing at assets/qris/gopay-standee.png"
+  $len = (Get-Item $standee).Length
+  Assert-True ($len -gt 1000 -and $len -lt 350000) "standee QR size out of range ($len bytes)"
+}
+
+Test-Case "storefront keeps fee rows hidden-friendly when fee_percent is 0" {
+  $js = Get-Content (Join-Path $Root "store.js") -Raw
+  Assert-Match 'feePercent\(\) > 0' $js "fee row must be conditional on a non-zero fee"
+}
+
 Write-Host ""
 Write-Host "Result: $script:Pass passed, $script:Fail failed" -ForegroundColor $(if ($script:Fail) { "Red" } else { "Green" })
 if ($script:Failures.Count) {

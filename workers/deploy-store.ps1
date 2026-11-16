@@ -33,6 +33,8 @@ $webhookSecret = Get-Env "QRIS_WEBHOOK_SECRET"
 $qrisStatic = Get-Env "QRIS_STATIC_PAYLOAD" ""
 $feePercent = Get-Env "QRIS_FEE_PERCENT" "0.7"
 $orderTtl = Get-Env "ORDER_TTL_SECONDS" "900"
+$paymentHold = Get-Env "PAYMENT_HOLD_SECONDS" "86400"
+$maxProof = Get-Env "MAX_PROOF_BYTES" "1200000"
 $demoMode = Get-Env "DEMO_MODE" "1"
 $storeName = Get-Env "STORE_NAME" "TheGadz Store"
 $allowedOrigins = Get-Env "ALLOWED_ORIGINS" "https://thegadz.github.io"
@@ -83,6 +85,29 @@ $schemaStatements = Get-SqlStatements $schemaFile
 foreach ($sql in $schemaStatements) { [void](Invoke-D1 $sql) }
 Write-Host "  $($schemaStatements.Count) statements applied" -ForegroundColor Green
 
+# ADD COLUMN migrations: SQLite has no IF NOT EXISTS for columns, so inspect first.
+Write-Host "Checking order columns..." -ForegroundColor Cyan
+$proofColumns = [ordered]@{
+  proof_data          = "TEXT"
+  proof_mime          = "TEXT NOT NULL DEFAULT ''"
+  proof_size          = "INTEGER NOT NULL DEFAULT 0"
+  proof_sender        = "TEXT NOT NULL DEFAULT ''"
+  proof_note          = "TEXT NOT NULL DEFAULT ''"
+  proof_uploaded_at   = "TEXT"
+  proof_rejected_at   = "TEXT"
+  proof_reject_reason = "TEXT NOT NULL DEFAULT ''"
+}
+$info = Invoke-D1 "PRAGMA table_info(orders)"
+$existing = @($info.result[0].results | ForEach-Object { $_.name })
+$added = 0
+foreach ($name in $proofColumns.Keys) {
+  if ($existing -contains $name) { continue }
+  [void](Invoke-D1 "ALTER TABLE orders ADD COLUMN $name $($proofColumns[$name])")
+  Write-Host "  added column $name" -ForegroundColor DarkGray
+  $added++
+}
+Write-Host "  $added column(s) added, $($proofColumns.Count - $added) already present" -ForegroundColor Green
+
 if (-not $SkipSeed) {
   Write-Host "Applying catalog seed..." -ForegroundColor Cyan
   $seedStatements = Get-SqlStatements $seedFile
@@ -102,6 +127,8 @@ $bindings = @(
   @{ type = "secret_text"; name = "QRIS_WEBHOOK_SECRET"; text = $webhookSecret },
   @{ type = "plain_text"; name = "QRIS_FEE_PERCENT"; text = $feePercent },
   @{ type = "plain_text"; name = "ORDER_TTL_SECONDS"; text = $orderTtl },
+  @{ type = "plain_text"; name = "PAYMENT_HOLD_SECONDS"; text = $paymentHold },
+  @{ type = "plain_text"; name = "MAX_PROOF_BYTES"; text = $maxProof },
   @{ type = "plain_text"; name = "DEMO_MODE"; text = $demoMode },
   @{ type = "plain_text"; name = "STORE_NAME"; text = $storeName },
   @{ type = "plain_text"; name = "ALLOWED_ORIGINS"; text = $allowedOrigins }

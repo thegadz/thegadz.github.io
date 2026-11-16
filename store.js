@@ -16,6 +16,9 @@
   };
   var EVENT_LABELS = {
     created: "Pesanan dibuat",
+    proof_uploaded: "Bukti pembayaran dikirim",
+    proof_rejected: "Bukti pembayaran ditolak",
+    proof_removed: "Bukti pembayaran dihapus",
     paid: "Pembayaran diterima",
     fulfilled: "Pesanan diproses",
     expired: "Pesanan kedaluwarsa",
@@ -142,25 +145,34 @@
       method: opts.method || "GET",
       headers: headers,
       body: opts.body ? JSON.stringify(opts.body) : undefined
-    }).then(function (response) {
-      return response.text().then(function (text) {
-        var data = {};
-        if (text) {
-          try {
-            data = JSON.parse(text);
-          } catch (err) {
-            data = {};
-          }
+    }).then(readResponse);
+  }
+
+  function readResponse(response) {
+    return response.text().then(function (text) {
+      var data = {};
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (err) {
+          data = {};
         }
-        if (!response.ok) {
-          var error = new Error(data.message || "Permintaan gagal (" + response.status + ").");
-          error.status = response.status;
-          error.code = data.error;
-          throw error;
-        }
-        return data;
-      });
+      }
+      if (!response.ok) {
+        var error = new Error(data.message || "Permintaan gagal (" + response.status + ").");
+        error.status = response.status;
+        error.code = data.error;
+        throw error;
+      }
+      return data;
     });
+  }
+
+  function apiUpload(path, formData) {
+    return fetch(API_BASE + path, {
+      method: "POST",
+      body: formData
+    }).then(readResponse);
   }
 
   function copyText(text) {
@@ -261,6 +273,15 @@
 
   function demoEnabled() {
     return !!(state.config && (state.config.demo === true || state.config.demo === 1 || state.config.demo === "1"));
+  }
+
+  function proofUploadEnabled() {
+    return !!(state.config && state.config.payment && state.config.payment.proof_upload === true);
+  }
+
+  function maxProofBytes() {
+    var max = state.config && state.config.payment && Number(state.config.payment.max_proof_bytes);
+    return max > 0 ? max : 1200000;
   }
 
   /* ---------------------------------------------------------------- nav */
@@ -534,7 +555,9 @@
             "</div>" +
             '<div class="summary-row"><span>Nominal</span><span id="sumDenom">' + esc(selected.label) + "</span></div>" +
             '<div class="summary-row"><span>Harga</span><span id="sumSubtotal">' + rupiah(selected.price) + "</span></div>" +
-            '<div class="summary-row muted"><span>Biaya QRIS (' + pctLabel(feePercent()) + '%)</span><span id="sumFee">' + rupiah(Math.round(Number(selected.price) * feePercent() / 100)) + "</span></div>" +
+            (feePercent() > 0
+              ? '<div class="summary-row muted"><span>Biaya QRIS (' + pctLabel(feePercent()) + '%)</span><span id="sumFee">' + rupiah(Math.round(Number(selected.price) * feePercent() / 100)) + "</span></div>"
+              : "") +
             '<div class="summary-total"><span>Total bayar</span><b id="sumTotal">' + rupiah(Number(selected.price) + Math.round(Number(selected.price) * feePercent() / 100)) + "</b></div>" +
             '<button class="buy-btn" type="button" id="buyBtn">Beli Sekarang</button>' +
             '<div class="pay-note">🔒 <span><b>Pembayaran QRIS.</b> QR otomatis dibuat sesuai total pesanan. Tidak perlu transfer manual.</span></div>' +
@@ -558,7 +581,8 @@
         document.getElementById("sumDenom").textContent = current.denomination.label;
         document.getElementById("sumSubtotal").textContent = rupiah(current.denomination.price);
         var fee = Math.round(current.denomination.price * feePercent() / 100);
-        document.getElementById("sumFee").textContent = rupiah(fee);
+        var feeEl = document.getElementById("sumFee");
+        if (feeEl) feeEl.textContent = rupiah(fee);
         document.getElementById("sumTotal").textContent = rupiah(current.denomination.price + fee);
       });
 
@@ -666,22 +690,95 @@
     return '<span class="status-badge ' + esc(status) + '">' + esc(STATUS_LABELS[status] || status) + "</span>";
   }
 
+  function formatBytes(bytes) {
+    var n = Number(bytes) || 0;
+    if (n >= 1048576) return (n / 1048576).toFixed(1) + " MB";
+    return Math.max(1, Math.round(n / 1024)) + " KB";
+  }
+
+  function orderProofSection(order) {
+    if (!proofUploadEnabled()) return "";
+    var proof = order.proof || null;
+    var rejection = order.proof_rejection || null;
+    var reasonHtml = rejection && !proof
+      ? '<div class="proof-reject" role="status"><b>Bukti sebelumnya ditolak admin.</b><span>' +
+        esc(rejection.reason || "Silakan unggah ulang bukti yang benar.") + "</span></div>"
+      : "";
+
+    if (proof) {
+      var isPdf = /pdf/i.test(proof.mime || "");
+      var preview = isPdf
+        ? '<span class="proof-file">PDF</span>'
+        : '<img src="' + esc(API_BASE + proof.url) + '" alt="Bukti pembayaran" />';
+      return '<div class="proof-block">' +
+        "<h4>Bukti pembayaran</h4>" +
+        '<div class="proof-current">' +
+          '<a class="proof-thumb" href="' + esc(API_BASE + proof.url) + '" target="_blank" rel="noopener">' + preview + "</a>" +
+          '<div class="proof-meta"><b>Bukti terkirim</b>' +
+            "<span>Menunggu verifikasi admin.</span>" +
+            "<small>" + fmtDateTime(proof.uploaded_at) + " · " + formatBytes(proof.size) + "</small>" +
+            (proof.sender ? "<small>Pengirim: " + esc(proof.sender) + "</small>" : "") +
+          "</div>" +
+        "</div>" +
+        '<div class="proof-tools">' +
+          '<a class="proof-link" href="' + esc(API_BASE + proof.url) + '" target="_blank" rel="noopener">Lihat file</a>' +
+          '<button class="proof-remove" type="button" data-proof-delete="' + esc(order.public_id) + '">Hapus &amp; unggah ulang</button>' +
+        "</div>" +
+      "</div>";
+    }
+
+    return '<div class="proof-block">' +
+      "<h4>Sudah bayar? Unggah bukti</h4>" +
+      reasonHtml +
+      '<p class="proof-hint">Setelah membayar, unggah tangkapan layar atau foto struk. Admin memverifikasi maksimal beberapa menit pada jam kerja.</p>' +
+      '<form class="proof-form" id="orderProofForm" data-order="' + esc(order.public_id) + '" novalidate>' +
+        '<label class="proof-field"><span>File bukti <em>(JPG, PNG, WEBP, atau PDF)</em></span>' +
+          '<input type="file" id="orderProofFile" name="proof" accept="image/jpeg,image/png,image/webp,application/pdf" required /></label>' +
+        '<label class="proof-field"><span>Nama pengirim</span>' +
+          '<input type="text" id="orderProofSender" name="sender" maxlength="60" autocomplete="name" placeholder="Nama di aplikasi pembayaran" /></label>' +
+        '<label class="proof-field"><span>Catatan <em>(opsional)</em></span>' +
+          '<input type="text" id="orderProofNote" name="note" maxlength="160" placeholder="Contoh: bayar dari GoPay a.n. Gadz" /></label>' +
+        '<p class="proof-error" id="orderProofError" hidden></p>' +
+        '<button class="primary-btn proof-submit" type="submit" id="orderProofSubmit">Kirim bukti pembayaran</button>' +
+      "</form>" +
+    "</div>";
+  }
+
+  // The static GoPay standee QR carries no amount, so the buyer types the total
+  // manually in their payment app. Shown whenever the API is not injecting an
+  // amount into a real QRIS payload.
+  var STANDEE_QR = "assets/qris/gopay-standee.png";
+
+  function manualAmountQr() {
+    return true;
+  }
+
   function orderPaySection(order) {
     if (order.status === "pending") {
+      var manualAmount = manualAmountQr();
+      var steps = proofUploadEnabled()
+        ? "<b>Cara bayar</b>" +
+          "<span>1. Buka aplikasi bank atau e-wallet yang mendukung QRIS (GoPay, OVO, DANA, m-banking).</span>" +
+          "<span>2. Scan QR di atas, lalu masukkan nominal <b>tepat</b> sebesar " + rupiah(order.total) + ".</span>" +
+          "<span>3. Setelah pembayaran berhasil, unggah bukti bayar pada formulir di bawah.</span>" +
+          "<span>4. Admin memverifikasi bukti, lalu pesanan diproses.</span>"
+        : "<b>Cara bayar</b>" +
+          "<span>1. Buka aplikasi bank atau e-wallet yang mendukung QRIS.</span>" +
+          "<span>2. Scan QR di atas, lalu masukkan nominal sebesar " + rupiah(order.total) + ".</span>" +
+          "<span>3. Konfirmasi pembayaran, lalu simpan bukti transaksi.</span>";
       return '<div class="qr-wrap">' +
         '<div class="qr-box"><div class="qr-code" id="orderQr"></div></div>' +
+        (manualAmount
+          ? '<p class="qr-note">Nominal <b>tidak otomatis</b> terisi. Masukkan manual <b>' + rupiah(order.total) + "</b> setelah scan.</p>"
+          : "") +
         '<p class="qr-amount">Total pembayaran<b>' + rupiah(order.total) + "</b></p>" +
         '<div class="countdown" id="orderCountdown">Menghitung…</div>' +
-        '<div class="qr-steps">' +
-          "<b>Cara bayar</b>" +
-          "<span>1. Buka aplikasi bank atau e-wallet yang mendukung QRIS.</span>" +
-          "<span>2. Scan QR di atas, lalu periksa nominal sebelum membayar.</span>" +
-          "<span>3. Konfirmasi pembayaran. Status pesanan diperbarui otomatis.</span>" +
-        "</div>" +
+        '<div class="qr-steps">' + steps + "</div>" +
         (demoEnabled()
           ? '<div class="demo-note"><b>Mode demo aktif.</b> Gateway QRIS asli belum terhubung. Gunakan tombol di bawah untuk mensimulasikan pembayaran berhasil.</div>' +
             '<button class="demo-btn" type="button" id="demoPaidBtn" data-demo="' + esc(order.public_id) + '">Simulasikan Pembayaran Berhasil</button>'
           : "") +
+        orderProofSection(order) +
       "</div>";
     }
     if (order.status === "paid") {
@@ -752,7 +849,9 @@
                 ? '<div class="detail-row"><dt>Nickname</dt><dd>' + esc(order.nickname) + "</dd></div>"
                 : "") +
               '<div class="detail-row"><dt>Harga</dt><dd>' + rupiah(order.subtotal) + "</dd></div>" +
-              '<div class="detail-row"><dt>Biaya QRIS</dt><dd>' + rupiah(order.fee) + "</dd></div>" +
+              (Number(order.fee) > 0
+                ? '<div class="detail-row"><dt>Biaya QRIS</dt><dd>' + rupiah(order.fee) + "</dd></div>"
+                : "") +
               '<div class="detail-row total"><dt>Total</dt><dd>' + rupiah(order.total) + "</dd></div>" +
               '<div class="detail-row"><dt>Metode</dt><dd>QRIS</dd></div>' +
               (order.paid_at ? '<div class="detail-row"><dt>Dibayar</dt><dd>' + fmtDateTime(order.paid_at) + "</dd></div>" : "") +
@@ -811,10 +910,19 @@
   function paintQr(container, payload) {
     if (!container) return;
     container.innerHTML = "";
+    // Prefer the real standee QR image when there is no amount-injected payload,
+    // since a generated QR without a payload would not be scannable.
     if (!payload) {
-      container.innerHTML = '<span class="qr-fallback">QR belum tersedia.</span>';
+      if (manualAmountQr()) {
+        container.className = "qr-code qr-code-image";
+        container.innerHTML = '<img src="' + STANDEE_QR + '" alt="QRIS GoPay TheGadz Store" decoding="async" ' +
+          'onerror="this.parentNode.className=\'qr-code\';this.parentNode.innerHTML=\'<span class=&quot;qr-fallback&quot;>QRIS belum tersedia. Hubungi admin.</span>\'" />';
+      } else {
+        container.innerHTML = '<span class="qr-fallback">QR belum tersedia.</span>';
+      }
       return;
     }
+    container.className = "qr-code";
     if (typeof window.qrcode !== "function") {
       container.innerHTML = '<span class="qr-fallback">' + esc(payload) + "</span>";
       return;
@@ -874,6 +982,65 @@
     }).catch(function (error) {
       button.disabled = false;
       button.textContent = "Simulasikan Pembayaran Berhasil";
+      toast(error.message, true);
+    });
+  }
+
+  function handleProofUpload(form) {
+    var orderId = form.getAttribute("data-order");
+    var fileInput = document.getElementById("orderProofFile");
+    var senderInput = document.getElementById("orderProofSender");
+    var noteInput = document.getElementById("orderProofNote");
+    var errorEl = document.getElementById("orderProofError");
+    var submit = document.getElementById("orderProofSubmit");
+    if (!orderId || !fileInput) return;
+
+    function fail(message) {
+      if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.hidden = false;
+      }
+      toast(message, true);
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = "Kirim bukti pembayaran";
+      }
+    }
+
+    var file = fileInput.files && fileInput.files[0];
+    if (!file) return fail("Pilih file bukti pembayaran terlebih dahulu.");
+    if (file.size > maxProofBytes()) {
+      return fail("Ukuran file terlalu besar (" + formatBytes(file.size) + "). Maksimal " + formatBytes(maxProofBytes()) + ".");
+    }
+
+    var data = new FormData();
+    data.append("proof", file);
+    if (senderInput && senderInput.value.trim()) data.append("sender", senderInput.value.trim());
+    if (noteInput && noteInput.value.trim()) data.append("note", noteInput.value.trim());
+
+    if (errorEl) errorEl.hidden = true;
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = "Mengunggah…";
+    }
+    apiUpload("/api/orders/" + encodeURIComponent(orderId) + "/proof", data).then(function () {
+      toast("Bukti pembayaran terkirim. Menunggu verifikasi admin.");
+      renderOrder(orderId, { silent: true });
+    }).catch(function (error) {
+      fail(error.message);
+    });
+  }
+
+  function handleProofDelete(button) {
+    var orderId = button.getAttribute("data-proof-delete");
+    if (!orderId) return;
+    if (!window.confirm("Hapus bukti pembayaran yang sudah diunggah?")) return;
+    button.disabled = true;
+    api("/api/orders/" + encodeURIComponent(orderId) + "/proof", { method: "DELETE" }).then(function () {
+      toast("Bukti pembayaran dihapus. Silakan unggah ulang.");
+      renderOrder(orderId, { silent: true });
+    }).catch(function (error) {
+      button.disabled = false;
       toast(error.message, true);
     });
   }
@@ -1214,6 +1381,12 @@
       return;
     }
 
+    var proofDeleteBtn = event.target.closest("[data-proof-delete]");
+    if (proofDeleteBtn) {
+      handleProofDelete(proofDeleteBtn);
+      return;
+    }
+
     var retry = event.target.closest("[data-retry-catalog]");
     if (retry) {
       state.dataPromise = null;
@@ -1231,6 +1404,13 @@
         if (history.replaceState) history.replaceState(null, "", "#cara-top-up");
       }
     }
+  });
+
+  document.addEventListener("submit", function (event) {
+    var form = event.target.closest("#orderProofForm");
+    if (!form) return;
+    event.preventDefault();
+    handleProofUpload(form);
   });
 
   if (menuBtn) {
