@@ -51,43 +51,34 @@ function Invoke-Api {
     [hashtable]$Headers = @{},
     [string]$RawBody = $null
   )
+  # HttpClient is used instead of Invoke-WebRequest because PS 5.1 drops the
+  # response body on 4xx/5xx, which hides the JSON error contract under test.
+  Add-Type -AssemblyName System.Net.Http
   $uri = "$ApiBase$Path"
-  $params = @{
-    Uri = $uri
-    Method = $Method
-    Headers = $Headers
-    TimeoutSec = 45
-    UseBasicParsing = $true
-  }
-  if (-not [string]::IsNullOrEmpty($RawBody)) {
-    $params.Body = $RawBody
-    $params.ContentType = "application/json"
-  } elseif ($null -ne $Body) {
-    $params.Body = ($Body | ConvertTo-Json -Depth 10 -Compress)
-    $params.ContentType = "application/json"
-  }
+  $client = New-Object System.Net.Http.HttpClient
+  $client.Timeout = [TimeSpan]::FromSeconds(45)
+  $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::$Method, $uri)
   try {
-    $res = Invoke-WebRequest @params
-    $json = $null
-    try { $json = $res.Content | ConvertFrom-Json } catch {}
-    return [pscustomobject]@{ Status = [int]$res.StatusCode; Json = $json; Raw = $res.Content }
-  } catch [System.Net.WebException] {
-    $resp = $_.Exception.Response
-    $code = 0
-    if ($resp) { $code = [int]$resp.StatusCode }
-    $raw = ""
-    if ($resp) {
-      $stream = $resp.GetResponseStream()
-      if ($stream) {
-        $reader = New-Object System.IO.StreamReader($stream)
-        $raw = $reader.ReadToEnd()
-      }
+    $payload = $null
+    if (-not [string]::IsNullOrEmpty($RawBody)) {
+      $payload = $RawBody
+    } elseif ($null -ne $Body) {
+      $payload = ($Body | ConvertTo-Json -Depth 10 -Compress)
     }
+    if ($null -ne $payload) {
+      $request.Content = New-Object System.Net.Http.StringContent($payload, [System.Text.Encoding]::UTF8, "application/json")
+    }
+    foreach ($key in $Headers.Keys) {
+      [void]$request.Headers.TryAddWithoutValidation($key, [string]$Headers[$key])
+    }
+    $res = $client.SendAsync($request).GetAwaiter().GetResult()
+    $raw = $res.Content.ReadAsStringAsync().Result
     $json = $null
     try { $json = $raw | ConvertFrom-Json } catch {}
-    return [pscustomobject]@{ Status = $code; Json = $json; Raw = $raw }
-  } catch {
-    throw "Request failed: $Method $uri :: $($_.Exception.Message)"
+    return [pscustomobject]@{ Status = [int]$res.StatusCode; Json = $json; Raw = $raw }
+  } finally {
+    $request.Dispose()
+    $client.Dispose()
   }
 }
 
@@ -167,7 +158,9 @@ Test-Case "config exposes store, qris mode, fee and demo flag" {
   $r = Invoke-Api -Path "/api/config"
   Assert-Equal 200 $r.Status "config status"
   Assert-True ($r.Json.store.name.Length -gt 0) "store name missing"
-  Assert-True ($r.Json.qris.mode -in @("demo", "static")) "qris mode invalid"
+  Assert-True ($r.Json.qris.mode -in @("demo", "static", "image")) "qris mode invalid"
+  Assert-True ($r.Json.qris.image -match "^assets/qris/") "qris image path missing"
+  Assert-Equal ($r.Json.qris.mode -eq "static") $r.Json.qris.amount_in_payload "amount_in_payload must follow static mode"
   Assert-True ($r.Json.qris.fee_percent -ge 0) "fee percent missing"
   Assert-True ($null -ne $r.Json.demo) "demo flag missing"
   Assert-True ($r.Json.order_ttl_seconds -gt 0) "ttl missing"
@@ -239,6 +232,7 @@ Test-Case "order rejects unknown denomination" {
 # ---------------------------------------------------------------- order creation
 $script:Order = $null
 Test-Case "order is priced on the server and starts pending" {
+  $script:QrisConfig = (Invoke-Api -Path "/api/config").Json.qris
   $denom = $script:Product.denominations[0]
   $r = Invoke-Api -Method POST -Path "/api/orders" -Body @{
     product_slug = "mobile-legends"
@@ -254,7 +248,11 @@ Test-Case "order is priced on the server and starts pending" {
   Assert-Equal $denom.price $r.Json.order.subtotal "subtotal must come from server"
   Assert-NotEqual 1 $r.Json.order.total "client total must be ignored"
   Assert-Equal "pending" $r.Json.order.status "initial status"
-  Assert-True ($r.Json.order.qr_payload.Length -gt 10) "qr payload missing"
+  if ($script:QrisConfig.mode -eq "static") {
+    Assert-True ($r.Json.order.qr_payload.Length -gt 10) "qr payload missing"
+  } else {
+    Assert-True ([string]::IsNullOrEmpty($r.Json.order.qr_payload)) "image QR mode must not issue a payload"
+  }
   Assert-True ($r.Json.order.total -ge $r.Json.order.subtotal) "total below subtotal"
   $script:Order = $r.Json.order
 }
@@ -397,17 +395,27 @@ Test-Case "qris preview rejects a malformed payload" {
 # ---------------------------------------------------------------- payment proof
 Add-Type -AssemblyName System.Net.Http
 
+# Workerd's FormData parser requires a quoted Content-Disposition name
+# (name="proof"). .NET's MultipartFormDataContent emits name=proof unquoted,
+# so the body is assembled by hand to match what browsers send.
 function New-ProofForm([byte[]]$Bytes, [string]$FileName = "bukti.png", [string]$Sender = "Tester") {
-  $content = New-Object System.Net.Http.MultipartFormDataContent
-  $fileContent = New-Object System.Net.Http.ByteArrayContent(,$Bytes)
-  $fileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("application/octet-stream")
-  [void]$content.Add($fileContent, "proof", $FileName)
-  if ($Sender) {
-    $senderContent = New-Object System.Net.Http.StringContent($Sender)
-    [void]$content.Add($senderContent, "sender")
+  $boundary = "----gadzstore" + [guid]::NewGuid().ToString("N")
+  $ms = New-Object System.IO.MemoryStream
+  function Write-Text([string]$text) {
+    $chunk = [System.Text.Encoding]::UTF8.GetBytes($text)
+    $ms.Write($chunk, 0, $chunk.Length)
   }
-  # Unary comma: MultipartFormDataContent is IEnumerable, so a bare return would
-  # unroll into its child contents and lose the HttpContent type.
+  Write-Text("--$boundary`r`nContent-Disposition: form-data; name=""proof""; filename=""$FileName""`r`nContent-Type: application/octet-stream`r`n`r`n")
+  $ms.Write($Bytes, 0, $Bytes.Length)
+  if ($Sender) {
+    Write-Text("`r`n--$boundary`r`nContent-Disposition: form-data; name=""sender""`r`n`r`n$Sender")
+  }
+  Write-Text("`r`n--$boundary--`r`n")
+  $payload = $ms.ToArray()
+  $ms.Dispose()
+
+  $content = New-Object System.Net.Http.ByteArrayContent(,$payload)
+  [void]$content.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=$boundary")
   return ,$content
 }
 
@@ -467,7 +475,8 @@ Test-Case "manual mode hides the QRIS demo button" {
     Assert-Equal "demo_disabled" $r.Json.error "demo-paid error code"
     $lookup = Invoke-Api -Path "/api/orders/$($created.Json.order.public_id)"
     Assert-Equal "pending" $lookup.Json.order.status "order must stay pending"
-    Assert-Equal $null $lookup.Json.order.qr_payload "manual mode must not issue an amount payload"
+    # Non-static QRIS modes send an empty payload; the storefront shows the QR image instead.
+    Assert-True ([string]::IsNullOrEmpty([string]$lookup.Json.order.qr_payload)) "manual mode must not issue an amount payload"
   } else {
     Assert-Equal $false $config.payment.proof_upload "proof_upload must be off in demo mode"
   }
@@ -537,7 +546,8 @@ Test-Case "proof can be rejected with a reason and re-uploaded" {
   $list = Invoke-Api -Path "/api/admin/orders?limit=200" -Headers (Get-AdminHeaders)
   $row = @($list.Json.orders | Where-Object { $_.public_id -eq $id })[0]
   Assert-True ($null -ne $row) "order missing from admin list"
-  Assert-True ($row.proof_uploaded_at.Length -gt 0) "admin list must expose proof_uploaded_at"
+  Assert-True ($null -ne $row.proof) "admin list must expose the proof block"
+  Assert-True ([string]$row.proof.uploaded_at -match '^\d{4}-\d{2}-\d{2}T') "admin list proof must carry uploaded_at"
   Assert-True (-not ($row.PSObject.Properties.Name -contains "proof_data")) "admin list must not leak proof bytes"
   $reject = Invoke-Api -Method POST -Path "/api/admin/orders/$id/reject-proof" -Headers (Get-AdminHeaders) -Body @{ reason = "Nominal tidak sesuai" }
   Assert-Equal 200 $reject.Status "reject proof"

@@ -28,12 +28,13 @@ D1_DATABASE_ID=...
 WORKER_NAME=gadzstore-api
 ADMIN_TOKEN=...                 # long random string
 QRIS_WEBHOOK_SECRET=...         # long random string
-QRIS_FEE_PERCENT=0.7
+QRIS_FEE_PERCENT=0
 ORDER_TTL_SECONDS=900
-DEMO_MODE=1
+DEMO_MODE=0
 STORE_NAME=TheGadz Store
 ALLOWED_ORIGINS=https://thegadz.github.io
 QRIS_STATIC_PAYLOAD=            # optional, static QRIS string from the merchant
+QRIS_IMAGE=assets/qris/gopay-standee.png  # QR image shown for every order
 ```
 
 Generate secrets with a password manager or:

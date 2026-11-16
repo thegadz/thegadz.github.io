@@ -2,16 +2,19 @@
 // Cloudflare Worker + D1. Public storefront API, admin API, QRIS payments.
 //
 // Two payment modes:
-//   static - manual: the buyer scans the shop's own GoPay QRIS (QRIS_STATIC_PAYLOAD
-//            with the order total injected), uploads proof, the admin verifies it
+//   manual - the shop's own GoPay QRIS standee image is shown for every order
+//            (QRIS_STATIC_PAYLOAD is optional; when set, the shop QR is also
+//            re-encoded with the order amount injected). The buyer types the
+//            total in their payment app, uploads proof, the admin verifies it
 //            and marks the order paid. No gateway, no callback, no fees.
-//   demo   - no QRIS configured: QR payload is a placeholder and payments can only
-//            be simulated. Never used in production.
+//   demo   - nothing paid configured: QR payload is a placeholder and payments
+//            can only be simulated. Never used in production.
 //
 // Bindings expected:
 //   DB (D1), ADMIN_TOKEN (secret), QRIS_WEBHOOK_SECRET (secret),
-//   QRIS_STATIC_PAYLOAD (secret), QRIS_FEE_PERCENT, ORDER_TTL_SECONDS,
-//   DEMO_MODE, STORE_NAME, PAYMENT_HOLD_SECONDS, MAX_PROOF_BYTES
+//   QRIS_STATIC_PAYLOAD (optional static QR string), QRIS_IMAGE (image path for
+//   the storefront), QRIS_FEE_PERCENT, ORDER_TTL_SECONDS, DEMO_MODE, STORE_NAME,
+//   PAYMENT_HOLD_SECONDS, MAX_PROOF_BYTES
 
 const JSON_TYPE = "application/json; charset=utf-8";
 const ORDER_STATUSES = ["pending", "paid", "fulfilled", "expired", "cancelled"];
@@ -87,12 +90,19 @@ function demoMode(env) {
   return String(env.DEMO_MODE || "1") === "1";
 }
 
+function qrisImage(env) {
+  return String(env.QRIS_IMAGE || "assets/qris/gopay-standee.png").trim();
+}
+
+// A shop QR is always available: the uploaded standee image, or a static payload
+// that can be re-encoded per order. Either one enables real manual payments.
 function qrisMode(env) {
-  return String(env.QRIS_STATIC_PAYLOAD || "").trim() ? "static" : "demo";
+  if (String(env.QRIS_STATIC_PAYLOAD || "").trim()) return "static";
+  return qrisImage(env) ? "image" : "demo";
 }
 
 function paymentMode(env) {
-  if (qrisMode(env) !== "static") return "demo";
+  if (qrisMode(env) === "demo") return "demo";
   return demoMode(env) ? "demo" : "manual";
 }
 
@@ -339,7 +349,9 @@ function injectQrisAmount(payload, amount) {
 
 function buildQrPayload(env, total, publicId) {
   const staticPayload = String(env.QRIS_STATIC_PAYLOAD || "").trim();
-  if (!staticPayload) return "DEMO-QRIS|" + publicId + "|" + total;
+  // Without a static payload there is no amount-injected QR: the storefront shows
+  // the shop's QRIS image instead, so the payload stays empty on purpose.
+  if (!staticPayload) return "";
   return injectQrisAmount(staticPayload, total).payload;
 }
 
@@ -391,7 +403,13 @@ async function route(request, env, url) {
     return json(
       {
         store: { name: storeName(env), currency: "IDR", locale: "id-ID" },
-        qris: { mode: qrisMode(env), fee_percent: feePercent(env), payment_method: "QRIS" },
+        qris: {
+          mode: qrisMode(env),
+          image: qrisImage(env),
+          amount_in_payload: qrisMode(env) === "static",
+          fee_percent: feePercent(env),
+          payment_method: "QRIS",
+        },
         payment: {
           mode: paymentMode(env),
           methods: paymentMode(env) === "manual" ? ["QRIS"] : ["QRIS", "DEMO"],

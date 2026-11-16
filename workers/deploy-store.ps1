@@ -31,6 +31,7 @@ $scriptName = Get-Env "WORKER_NAME" "gadzstore-api"
 $adminToken = Get-Env "ADMIN_TOKEN"
 $webhookSecret = Get-Env "QRIS_WEBHOOK_SECRET"
 $qrisStatic = Get-Env "QRIS_STATIC_PAYLOAD" ""
+$qrisImage = Get-Env "QRIS_IMAGE" "assets/qris/gopay-standee.png"
 $feePercent = Get-Env "QRIS_FEE_PERCENT" "0.7"
 $orderTtl = Get-Env "ORDER_TTL_SECONDS" "900"
 $paymentHold = Get-Env "PAYMENT_HOLD_SECONDS" "86400"
@@ -139,7 +140,8 @@ $bindings = @(
   @{ type = "plain_text"; name = "MAX_PROOF_BYTES"; text = $maxProof },
   @{ type = "plain_text"; name = "DEMO_MODE"; text = $demoMode },
   @{ type = "plain_text"; name = "STORE_NAME"; text = $storeName },
-  @{ type = "plain_text"; name = "ALLOWED_ORIGINS"; text = $allowedOrigins }
+  @{ type = "plain_text"; name = "ALLOWED_ORIGINS"; text = $allowedOrigins },
+  @{ type = "plain_text"; name = "QRIS_IMAGE"; text = $qrisImage }
 )
 if ($qrisStatic) {
   $bindings += @{ type = "secret_text"; name = "QRIS_STATIC_PAYLOAD"; text = $qrisStatic }
@@ -180,4 +182,5 @@ Write-Host "Deployed: $url" -ForegroundColor Green
 Write-Host "Admin:    $url/admin" -ForegroundColor Green
 Write-Host "Health:   $url/api/health" -ForegroundColor Green
 Write-Host ""
-Write-Host "QRIS mode: $(if ($qrisStatic) { 'static' } else { 'demo' }) | demo flag: $demoMode | TTL: ${orderTtl}s" -ForegroundColor DarkGray
+$qrisLabel = if ($qrisStatic) { "static" } elseif ($qrisImage) { "image" } else { "demo" }
+Write-Host "QRIS mode: $qrisLabel ($qrisImage) | demo flag: $demoMode | TTL: ${orderTtl}s" -ForegroundColor DarkGray

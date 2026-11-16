@@ -21,7 +21,13 @@ Returns `503` with `{ "ok": false, "db": "error" }` when D1 is unreachable.
 ```json
 {
   "store": { "name": "TheGadz Store", "currency": "IDR", "locale": "id-ID" },
-  "qris": { "mode": "static", "fee_percent": 0, "payment_method": "QRIS" },
+  "qris": {
+    "mode": "image",
+    "image": "assets/qris/gopay-standee.png",
+    "amount_in_payload": false,
+    "fee_percent": 0,
+    "payment_method": "QRIS"
+  },
   "payment": {
     "mode": "manual",
     "methods": ["QRIS"],
@@ -33,9 +39,9 @@ Returns `503` with `{ "ok": false, "db": "error" }` when D1 is unreachable.
 }
 ```
 
-`qris.mode` is `static` when `QRIS_STATIC_PAYLOAD` is configured, otherwise `demo`. `demo` is true only when `DEMO_MODE=1`.
+`qris.mode` is `static` when `QRIS_STATIC_PAYLOAD` is configured (the Worker then re-encodes a per-order amount into that payload), `image` when only a QR image is configured (`QRIS_IMAGE`, default `assets/qris/gopay-standee.png`), and `demo` when neither is set. `qris.image` is the QR the storefront displays for every order; `qris.amount_in_payload` is true only in `static` mode. `demo` is true only when `DEMO_MODE=1`.
 
-`payment.mode` is `manual` when `QRIS_STATIC_PAYLOAD` is set **and** `DEMO_MODE=0`; otherwise `demo`. In `manual` mode the storefront hides the demo button, shows the proof upload form, and holds pending orders for `PAYMENT_HOLD_SECONDS` (default 86400) instead of `ORDER_TTL_SECONDS` (default 900). `payment.max_proof_bytes` is the effective cap after the D1 row limit is applied — the smallest of `MAX_PROOF_BYTES` and `floor(900 KiB / 1.34)`.
+`payment.mode` is `manual` when a QR is configured (`static` or `image`) **and** `DEMO_MODE=0`; otherwise `demo`. In `manual` mode the storefront hides the demo button, shows the shop QR image plus the proof upload form, and holds pending orders for `PAYMENT_HOLD_SECONDS` (default 86400) instead of `ORDER_TTL_SECONDS` (default 900). `payment.max_proof_bytes` is the effective cap after the D1 row limit is applied — the smallest of `MAX_PROOF_BYTES` and `floor(900 KiB / 1.34)`.
 
 ### `GET /api/catalog`
 

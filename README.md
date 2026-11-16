@@ -19,7 +19,7 @@ An Indonesian game top-up storefront inspired by modern top-up sites: a light gr
 
 ## Payment and fulfillment status
 
-Payments are **QRIS-only**. The current deployment runs in **demo QRIS mode**: the Worker generates a per-order demo payload and exposes a demo-paid endpoint, because a real merchant/gateway account has not been provided yet. Set `DEMO_MODE=0` and supply a valid `QRIS_STATIC_PAYLOAD` or gateway integration before accepting real money.
+Payments are **QRIS-only**. The storefront shows the shop's own GoPay QRIS standee image (`assets/qris/gopay-standee.png`) for every order; the buyer types the exact total in their payment app, uploads proof, and the admin verifies it and marks the order paid. The deployment runs with `DEMO_MODE=0` in this **manual** mode, because a static personal QRIS has no gateway callback that could confirm payments automatically. Keep `QRIS_FEE_PERCENT=0` while using the personal standee; set `QRIS_STATIC_PAYLOAD` instead of the image if you later get an amount-injectable merchant QR, or wire a gateway to `POST /api/webhooks/qris`.
 
 Fulfillment is **manual** through `/admin`. The `supplier_ref` field records the supplier transaction; an automatic supplier adapter can be added later.
 

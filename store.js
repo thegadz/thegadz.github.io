@@ -760,13 +760,18 @@
     "</div>";
   }
 
-  // The static GoPay standee QR carries no amount, so the buyer types the total
-  // manually in their payment app. Shown whenever the API is not injecting an
-  // amount into a real QRIS payload.
+  // The shop's own QRIS standee image is the payment QR for every order. It
+  // carries no amount, so the buyer types the total manually in their payment app.
   var STANDEE_QR = "assets/qris/gopay-standee.png";
 
+  function qrisImage() {
+    var path = state.config && state.config.qris && state.config.qris.image;
+    return typeof path === "string" && path ? path : STANDEE_QR;
+  }
+
   function manualAmountQr() {
-    return true;
+    var payload = state.config && state.config.qris && state.config.qris.amount_in_payload;
+    return payload !== true;
   }
 
   function orderPaySection(order) {
@@ -775,15 +780,15 @@
       var steps = proofUploadEnabled()
         ? "<b>Cara bayar</b>" +
           "<span>1. Buka aplikasi bank atau e-wallet yang mendukung QRIS (GoPay, OVO, DANA, m-banking).</span>" +
-          "<span>2. Scan QR di atas, lalu masukkan nominal <b>tepat</b> sebesar " + rupiah(order.total) + ".</span>" +
+          "<span>2. Scan QR di atas" + (manualAmount ? ", lalu masukkan nominal <b>tepat</b> sebesar " + rupiah(order.total) : "") + ".</span>" +
           "<span>3. Setelah pembayaran berhasil, unggah bukti bayar pada formulir di bawah.</span>" +
           "<span>4. Admin memverifikasi bukti, lalu pesanan diproses.</span>"
         : "<b>Cara bayar</b>" +
           "<span>1. Buka aplikasi bank atau e-wallet yang mendukung QRIS.</span>" +
-          "<span>2. Scan QR di atas, lalu masukkan nominal sebesar " + rupiah(order.total) + ".</span>" +
+          "<span>2. Scan QR di atas" + (manualAmount ? ", lalu masukkan nominal sebesar " + rupiah(order.total) : "") + ".</span>" +
           "<span>3. Konfirmasi pembayaran, lalu simpan bukti transaksi.</span>";
       return '<div class="qr-wrap">' +
-        '<div class="qr-box"><div class="qr-code" id="orderQr"></div></div>' +
+        '<div class="qr-box"><div class="qr-code qr-code-image" id="orderQr">' + qrImageTag() + "</div></div>" +
         (manualAmount
           ? '<p class="qr-note">Nominal <b>tidak otomatis</b> terisi. Masukkan manual <b>' + rupiah(order.total) + "</b> setelah scan.</p>"
           : "") +
@@ -923,19 +928,19 @@
     });
   }
 
+  function qrImageTag() {
+    return '<img src="' + esc(qrisImage()) + '" alt="QRIS GoPay TheGadz Store" width="520" height="520" decoding="async" ' +
+      'onerror="this.parentNode.className=\'qr-code\';this.parentNode.innerHTML=\'<span class=&quot;qr-fallback&quot;>QRIS belum tersedia. Hubungi admin.</span>\'" />';
+  }
+
   function paintQr(container, payload) {
     if (!container) return;
     container.innerHTML = "";
-    // Prefer the real standee QR image when there is no amount-injected payload,
-    // since a generated QR without a payload would not be scannable.
+    // The uploaded standee QR image is used for every payment. A real
+    // amount-injected payload, when the shop ever sets one, is painted as SVG.
     if (!payload) {
-      if (manualAmountQr()) {
-        container.className = "qr-code qr-code-image";
-        container.innerHTML = '<img src="' + STANDEE_QR + '" alt="QRIS GoPay TheGadz Store" decoding="async" ' +
-          'onerror="this.parentNode.className=\'qr-code\';this.parentNode.innerHTML=\'<span class=&quot;qr-fallback&quot;>QRIS belum tersedia. Hubungi admin.</span>\'" />';
-      } else {
-        container.innerHTML = '<span class="qr-fallback">QR belum tersedia.</span>';
-      }
+      container.className = "qr-code qr-code-image";
+      container.innerHTML = qrImageTag();
       return;
     }
     container.className = "qr-code";
