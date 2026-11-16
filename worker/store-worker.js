@@ -1,4 +1,4 @@
-// TheGadz Store API worker.
+// thegadzstore API worker.
 // Cloudflare Worker + D1. Public storefront API, admin API, QRIS payments.
 //
 // Two payment modes:
@@ -75,7 +75,7 @@ function envNumber(env, key, fallback) {
 }
 
 function storeName(env) {
-  return String(env.STORE_NAME || "TheGadz Store");
+  return String(env.STORE_NAME || "thegadzstore");
 }
 
 function feePercent(env) {
@@ -1043,7 +1043,7 @@ function adminPage() {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Admin — TheGadz Store</title>
+<title>Admin — thegadzstore</title>
 <style>
   :root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f8fafc;--card:#fff;--green:#0f9f5f;--green-2:#047857;--amber:#b45309;--red:#b91c1c;--blue:#1d4ed8}
   *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -1092,7 +1092,7 @@ function adminPage() {
 </head>
 <body>
 <header>
-  <div><b>TheGadz Store</b> <small>Admin pesanan</small></div>
+  <div><b>thegadzstore</b> <small>Admin pesanan</small></div>
   <button id="logout" hidden>Keluar</button>
 </header>
 <main>

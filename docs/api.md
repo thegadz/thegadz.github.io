@@ -1,4 +1,4 @@
-# TheGadz Store API
+# thegadzstore API
 
 Base URL: `https://gadzstore-api.blueicespeed.workers.dev`
 
@@ -20,7 +20,7 @@ Returns `503` with `{ "ok": false, "db": "error" }` when D1 is unreachable.
 
 ```json
 {
-  "store": { "name": "TheGadz Store", "currency": "IDR", "locale": "id-ID" },
+  "store": { "name": "thegadzstore", "currency": "IDR", "locale": "id-ID" },
   "qris": {
     "mode": "image",
     "image": "assets/qris/gopay-standee.png",

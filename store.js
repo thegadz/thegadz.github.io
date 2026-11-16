@@ -1,11 +1,11 @@
-/* TheGadz Store — storefront app */
+/* thegadzstore — storefront app */
 (function () {
   "use strict";
 
   var meta = document.querySelector('meta[name="api-base"]');
   var API_BASE = (meta && meta.content ? meta.content : "").replace(/\/+$/, "");
 
-  var DEFAULT_TITLE = "TheGadz Store — Top Up Game & Voucher Murah, Aman, Cepat";
+  var DEFAULT_TITLE = "thegadzstore — Top Up Game & Voucher Murah, Aman, Cepat";
   var FEE_FALLBACK = 0.7;
   var STATUS_LABELS = {
     pending: "Menunggu pembayaran",
@@ -391,11 +391,11 @@
         return item.slug === slug;
       })[0];
       if (!category) {
-        document.title = "Halaman tidak ditemukan — TheGadz Store";
+        document.title = "Halaman tidak ditemukan — thegadzstore";
         showView("missing");
         return;
       }
-      document.title = category.name + " — TheGadz Store";
+      document.title = category.name + " — thegadzstore";
       view.innerHTML =
         '<div class="view-head">' +
           '<nav class="crumb"><a href="#/">Beranda</a><span>/</span><span>' + esc(category.name) + "</span></nav>" +
@@ -451,7 +451,7 @@
           "<p>Coba kata kunci lain seperti “diamond”, “voucher”, atau “pulsa”.</p>" +
           '<a class="primary-btn" href="#/">Kembali ke beranda</a></div>');
 
-    document.title = "Cari — TheGadz Store";
+    document.title = "Cari — thegadzstore";
   }
 
   /* ---------------------------------------------------------------- product */
@@ -500,7 +500,7 @@
         return;
       }
 
-      document.title = product.name + " — TheGadz Store";
+      document.title = product.name + " — thegadzstore";
       var color = safeColor(product.color);
       var tf = targetField(product);
       var selected = denominations[0];
@@ -652,7 +652,7 @@
     }).catch(function (error) {
       if (token !== state.viewToken) return;
       if (error.status === 404) {
-        document.title = "Produk tidak ditemukan — TheGadz Store";
+        document.title = "Produk tidak ditemukan — thegadzstore";
         view.innerHTML = '<div class="state-card"><span class="state-icon">🧭</span><h2>Produk tidak ditemukan</h2>' +
           "<p>Produk yang kamu cari tidak tersedia atau sudah tidak aktif.</p>" +
           '<a class="primary-btn" href="#/">Kembali ke beranda</a></div>';
@@ -813,7 +813,7 @@
         "<p>Pesanan sudah diproses dan dikirim ke tujuan.</p>" +
         (order.supplier_ref ? '<p style="margin-top:6px">Ref: <b>' + esc(order.supplier_ref) + "</b></p>" : "") +
         "</div>" +
-        '<div class="order-help">Terima kasih sudah berbelanja di TheGadz Store. ' +
+        '<div class="order-help">Terima kasih sudah berbelanja di thegadzstore. ' +
         'Butuh bantuan? Hubungi admin dengan menyertakan ID pesanan.</div>';
     }
     if (order.status === "expired") {
@@ -838,7 +838,7 @@
       if (token !== state.orderToken || !state.route || state.route.name !== "order" || state.route.id !== id) return;
       var order = data.order;
       rememberOrder(order);
-      document.title = "Pesanan " + order.public_id + " — TheGadz Store";
+      document.title = "Pesanan " + order.public_id + " — thegadzstore";
 
       var events = order.events || [];
       var timeline = events.length
@@ -929,7 +929,7 @@
   }
 
   function qrImageTag() {
-    return '<img src="' + esc(qrisImage()) + '" alt="QRIS GoPay TheGadz Store" width="520" height="520" decoding="async" ' +
+    return '<img src="' + esc(qrisImage()) + '" alt="QRIS GoPay thegadzstore" width="520" height="520" decoding="async" ' +
       'onerror="this.parentNode.className=\'qr-code\';this.parentNode.innerHTML=\'<span class=&quot;qr-fallback&quot;>QRIS belum tersedia. Hubungi admin.</span>\'" />';
   }
 
@@ -1098,7 +1098,7 @@
         "</section>" +
         '<section class="recent-card"><h2>Pesanan terakhir</h2>' + recentHtml + "</section>" +
       "</div>";
-    document.title = "Lacak Pesanan — TheGadz Store";
+    document.title = "Lacak Pesanan — thegadzstore";
   }
 
   /* ---------------------------------------------------------------- info pages */
@@ -1117,7 +1117,7 @@
           "<li>Status pesanan diperbarui otomatis. Simpan ID pesanan untuk melacak.</li>" +
         "</ol>" +
         "<h2>Pembayaran QRIS</h2>" +
-        "<p>TheGadz Store hanya menerima pembayaran QRIS. Satu QR untuk satu pesanan, dan nominalnya sudah termasuk biaya layanan QRIS yang ditampilkan sebelum kamu membayar.</p>" +
+        "<p>thegadzstore hanya menerima pembayaran QRIS. Satu QR untuk satu pesanan, dan nominalnya sudah termasuk biaya layanan QRIS yang ditampilkan sebelum kamu membayar.</p>" +
         '<p class="info-note">Pesanan yang belum dibayar sampai batas waktu akan otomatis kedaluwarsa. Buat pesanan baru jika waktunya habis.</p>' +
         "<h2>Butuh bantuan?</h2>" +
         '<p>Hubungi kami di <a href="mailto:support@thegadz.store">support@thegadz.store</a> dengan menyertakan ID pesanan dan bukti pembayaran.</p>'
@@ -1125,8 +1125,8 @@
     tentang: {
       title: "Tentang Kami",
       body:
-        "<h2>TheGadz Store</h2>" +
-        "<p>TheGadz Store adalah toko digital untuk top up game, live app, voucher, pulsa, dan saldo e-money. Semua harga ditampilkan dalam Rupiah dan pembayaran dilakukan lewat QRIS.</p>" +
+        "<h2>thegadzstore</h2>" +
+        "<p>thegadzstore adalah toko digital untuk top up game, live app, voucher, pulsa, dan saldo e-money. Semua harga ditampilkan dalam Rupiah dan pembayaran dilakukan lewat QRIS.</p>" +
         "<h2>Yang kami sediakan</h2>" +
         "<ul>" +
           "<li>Top Up Game: Mobile Legends, Free Fire, PUBG Mobile, Valorant, dan lainnya.</li>" +
@@ -1158,7 +1158,7 @@
       title: "Syarat & Ketentuan",
       body:
         "<h2>Ketentuan umum</h2>" +
-        "<p>Dengan membuat pesanan di TheGadz Store, kamu setuju untuk memberikan data tujuan yang benar dan membayar sesuai nominal yang tertera.</p>" +
+        "<p>Dengan membuat pesanan di thegadzstore, kamu setuju untuk memberikan data tujuan yang benar dan membayar sesuai nominal yang tertera.</p>" +
         "<h2>Pesanan</h2>" +
         "<ul>" +
           "<li>Pesanan diproses setelah pembayaran QRIS terkonfirmasi.</li>" +
@@ -1194,10 +1194,10 @@
     var page = INFO_PAGES[slug];
     if (!page) {
       showView("missing");
-      document.title = "Halaman tidak ditemukan — TheGadz Store";
+      document.title = "Halaman tidak ditemukan — thegadzstore";
       return;
     }
-    document.title = page.title + " — TheGadz Store";
+    document.title = page.title + " — thegadzstore";
     var links = Object.keys(INFO_PAGES).map(function (key) {
       return '<a href="#/info/' + esc(key) + '"' + (key === slug ? ' class="active"' : "") + ">" +
         esc(INFO_PAGES[key].title) + "</a>";
@@ -1315,7 +1315,7 @@
 
     if (info.name === "category") {
       showView("category");
-      document.title = "Kategori — TheGadz Store";
+      document.title = "Kategori — thegadzstore";
       renderCategory(info.slug);
       return;
     }
@@ -1328,14 +1328,14 @@
 
     if (info.name === "product") {
       showView("product");
-      document.title = "Produk — TheGadz Store";
+      document.title = "Produk — thegadzstore";
       renderProduct(info.slug);
       return;
     }
 
     if (info.name === "order") {
       showView("order");
-      document.title = "Pesanan — TheGadz Store";
+      document.title = "Pesanan — thegadzstore";
       renderOrder(info.id);
       return;
     }
@@ -1352,7 +1352,7 @@
     }
 
     showView("missing");
-    document.title = "Halaman tidak ditemukan — TheGadz Store";
+    document.title = "Halaman tidak ditemukan — thegadzstore";
   }
 
   /* ---------------------------------------------------------------- events */

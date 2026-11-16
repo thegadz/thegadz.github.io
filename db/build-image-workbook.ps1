@@ -1,4 +1,4 @@
-﻿param(
+param(
   [string]$OutPath = "D:\DATA\project\gadzstore\db\product-images.xlsx"
 )
 
@@ -100,8 +100,8 @@ function Add-Row([int]$rowNumber, [string[]]$cellsXml, [double]$height, [int]$cu
 $merged = @()
 
 # Title row (A1:J1)
-Intern "DATABASE GAMBAR PRODUK - TheGadz Store"
-$titleCells = @(TextCell "A1" "DATABASE GAMBAR PRODUK - TheGadz Store" 1)
+Intern "DATABASE GAMBAR PRODUK - thegadzstore"
+$titleCells = @(TextCell "A1" "DATABASE GAMBAR PRODUK - thegadzstore" 1)
 for ($c = 2; $c -le $headers.Count; $c++) { $titleCells += '<c r="' + (Col $c) + '1" s="1"/>' }
 Add-Row 1 $titleCells 26 0
 $merged += 'A1:J1'
@@ -313,8 +313,8 @@ $rootRels = @'
 $coreXml = @'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-<dc:title>Database Gambar Produk - TheGadz Store</dc:title>
-<dc:creator>TheGadz Store</dc:creator>
+<dc:title>Database Gambar Produk - thegadzstore</dc:title>
+<dc:creator>thegadzstore</dc:creator>
 </cp:coreProperties>
 '@
 

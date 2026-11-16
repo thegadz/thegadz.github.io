@@ -1,4 +1,4 @@
-# TheGadz Store
+# thegadzstore
 
 An Indonesian game top-up storefront inspired by modern top-up sites: a light green storefront, category rails, search, product pages, QRIS checkout, order tracking, and a token-protected admin console.
 

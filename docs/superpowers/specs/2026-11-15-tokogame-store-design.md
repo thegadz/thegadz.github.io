@@ -1,4 +1,4 @@
-# TheGadz Store — Tokogame-style real store
+# thegadzstore — Tokogame-style real store
 
 ## Intent
 

@@ -1,4 +1,4 @@
-# Deploy the TheGadz Store API to Cloudflare Workers + D1 using the HTTP API.
+# Deploy the thegadzstore API to Cloudflare Workers + D1 using the HTTP API.
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File workers\deploy-store.ps1
 #   powershell -ExecutionPolicy Bypass -File workers\deploy-store.ps1 -SkipSeed
@@ -37,7 +37,7 @@ $orderTtl = Get-Env "ORDER_TTL_SECONDS" "900"
 $paymentHold = Get-Env "PAYMENT_HOLD_SECONDS" "86400"
 $maxProof = Get-Env "MAX_PROOF_BYTES" "1200000"
 $demoMode = Get-Env "DEMO_MODE" "1"
-$storeName = Get-Env "STORE_NAME" "TheGadz Store"
+$storeName = Get-Env "STORE_NAME" "thegadzstore"
 $allowedOrigins = Get-Env "ALLOWED_ORIGINS" "https://thegadz.github.io"
 
 if (-not $token -or -not $account -or -not $dbId) {

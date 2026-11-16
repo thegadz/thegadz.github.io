@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GadzStore — PRD v1 &amp; Design Artifact</title>
+<title>thegadzstore — PRD v1 &amp; Design Artifact</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -166,7 +166,7 @@ tr:last-child td{border-bottom:none}
 <body>
 <div class="layout">
 <aside class="side">
-  <h1>GadzStore</h1>
+  <h1>thegadzstore</h1>
   <div class="sub">PRD v1 · artifact</div>
   <nav>
     <div class="grp">Konteks</div>
@@ -213,7 +213,7 @@ tr:last-child td{border-bottom:none}
 <section id="ringkasan">
   <h3 class="sec">Bagian 1</h3>
   <h2 class="sec">Ringkasan &amp; tujuan</h2>
-  <p class="lead">GadzStore v1 adalah <b>storefront top-up game Indonesia</b> untuk <b>pembeli asli</b> — bukan mockup untuk dipamerkan, tapi produk yang bisa dipakai orang untuk benar-benar memesan. Anggap ini validasi bisnis: apakah alur beli kita cukup cepat, jelas, dan dipercaya?</p>
+  <p class="lead">thegadzstore v1 adalah <b>storefront top-up game Indonesia</b> untuk <b>pembeli asli</b> — bukan mockup untuk dipamerkan, tapi produk yang bisa dipakai orang untuk benar-benar memesan. Anggap ini validasi bisnis: apakah alur beli kita cukup cepat, jelas, dan dipercaya?</p>
 
   <div class="grid g3" style="margin-top:18px">
     <div class="card">
@@ -539,7 +539,7 @@ tr:last-child td{border-bottom:none}
       <h4>Siapa kamu, mau main apa</h4>
       <table style="margin-top:8px">
         <tbody>
-          <tr><td style="width:34px"><b>(1)</b></td><td><b>Top bar</b> — logo GadzStore kiri, tombol "Cek Order" kanan (ikon + teks, 12px).</td></tr>
+          <tr><td style="width:34px"><b>(1)</b></td><td><b>Top bar</b> — logo thegadzstore kiri, tombol "Cek Order" kanan (ikon + teks, 12px).</td></tr>
           <tr><td><b>(2)</b></td><td><b>Trust strip</b> — 3 badge horizontal: "Instan 24/7", "QRIS &amp; e-wallet", "Lacak dengan kode". Teks 11px, tanpa gambar berat.</td></tr>
           <tr><td><b>(3)</b></td><td><b>Banner</b> — satu kartu gradient ungu→cyan, tinggi ~96px, teks promo + CTA kecil. Bisa diganti admin lewat R2.</td></tr>
           <tr><td><b>(4)</b></td><td><b>Pencarian</b> — kotak bulat, placeholder "Cari game…". Filter instan saat mengetik.</td></tr>
@@ -1669,7 +1669,7 @@ expires_at   2026-11-15T02:59:10Z</pre>
       <tr><td><b>R6</b></td><td><b>Kode order ditebak orang lain / dibagikan</b></td><td><span class="b b-mute">Rendah</span></td><td><span class="b b-warn">Sedang</span></td><td>Pemicu: kode yang bisa ditebak berurutan. Tindakan: 4 karakter acak (bukan berurutan), halaman Cek Order hanya menampilkan status dan nickname tersamar, bukan ID lengkap.</td></tr>
       <tr><td><b>R7</b></td><td><b>Harga berubah dan invoice lama ikut berubah</b></td><td><span class="b b-mute">Rendah</span></td><td><span class="b b-warn">Sedang</span></td><td>Pemicu: total di invoice berbeda dari saat dibuat. Tindakan: aturan integritas §13 — harga **disalin** ke order; tambah satu uji khusus untuk ini sebelum fase 2 selesai.</td></tr>
       <tr><td><b>R8</b></td><td><b>Pembeli tidak bisa memakai nominal yang diinginkan</b></td><td><span class="b b-warn">Sedang</span></td><td><span class="b b-mute">Kecil</span></td><td>Pemicu: peserta demo bertanya "ada nominal lain?" Tindakan: catat, jangan ubah 6 SKU per game di v1 — cukup pastikan 6 pilihan itu yang paling sering dibeli.</td></tr>
-      <tr><td><b>R9</b></td><td><b>Nama "GadzStore" belum dicek ketersediaannya</b></td><td><span class="b b-warn">Sedang</span></td><td><span class="b b-mute">Kecil</span></td><td>Pemicu: nama dipakai orang lain. Tindakan: karena v1 memakai <code style="font-family:var(--mono)">*.workers.dev</code>, nama bisa diganti tanpa biaya — tapi lakukan <b>sebelum</b> membagikan ke 10 orang pertama.</td></tr>
+      <tr><td><b>R9</b></td><td><b>Nama "thegadzstore" belum dicek ketersediaannya</b></td><td><span class="b b-warn">Sedang</span></td><td><span class="b b-mute">Kecil</span></td><td>Pemicu: nama dipakai orang lain. Tindakan: karena v1 memakai <code style="font-family:var(--mono)">*.workers.dev</code>, nama bisa diganti tanpa biaya — tapi lakukan <b>sebelum</b> membagikan ke 10 orang pertama.</td></tr>
     </tbody>
   </table></div>
 
