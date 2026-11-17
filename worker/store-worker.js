@@ -30,7 +30,7 @@ class HttpError extends Error {
 function cors() {
   return {
     "access-control-allow-origin": "*",
-    "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
+    "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
     "access-control-allow-headers": "content-type,authorization,x-signature",
     "access-control-max-age": "86400",
   };
@@ -458,6 +458,8 @@ async function route(request, env, url) {
   if (path === "/api/admin/orders" && method === "GET") {
     return handleAdminList(env, url);
   }
+  if (method === "GET" && path === "/api/admin/prices/history") return handleAdminPriceHistory(env, url);
+  if (method === "GET" && path === "/api/admin/prices") return handleAdminPrices(env);
   const adminOrderMatch = path.match(/^\/api\/admin\/orders\/(TG[A-Z0-9]{6,12})$/);
   if (adminOrderMatch && method === "GET") {
     return handleAdminOrder(env, adminOrderMatch[1]);
@@ -905,6 +907,76 @@ async function handleWebhook(request, env) {
 }
 
 /* ------------------------------------------------------------------ admin */
+
+const PRICE_SELECT = `
+  SELECT d.id, d.sku, d.label, d.price, d.compare_at, d.active,
+         d.product_id, p.slug AS product_slug, p.name AS product_name,
+         p.active AS product_active, c.name AS category_name,
+         pc.old_price, pc.new_price, pc.changed_at AS last_changed_at, pc.note AS last_note
+  FROM denominations d
+  JOIN products p ON p.id = d.product_id
+  JOIN categories c ON c.id = p.category_id
+  -- Subselect keyed on denomination_id (leftmost prefix of idx_price_changes_denom);
+  -- id DESC is a reverse rowid walk with LIMIT 1, so no sort is needed. Do NOT
+  -- change this to ORDER BY x.changed_at DESC: changed_at can tie between two
+  -- updates in the same millisecond, and id DESC is the only total order that
+  -- keeps the join predicate a single-row match.
+  LEFT JOIN price_changes pc ON pc.id = (
+    SELECT id FROM price_changes x WHERE x.denomination_id = d.id ORDER BY x.id DESC LIMIT 1
+  )`;
+
+function priceJson(row) {
+  return {
+    id: row.id,
+    sku: row.sku,
+    label: row.label,
+    product_slug: row.product_slug,
+    product_name: row.product_name,
+    category_name: row.category_name,
+    product_active: num(row.product_active, 0),
+    price: num(row.price, 0),
+    compare_at: num(row.compare_at, 0),
+    active: num(row.active, 0),
+    last_change: row.last_changed_at
+      ? { old_price: num(row.old_price, 0), new_price: num(row.new_price, 0),
+          changed_at: row.last_changed_at, note: row.last_note || "" }
+      : null,
+  };
+}
+
+async function priceRows(env, ids) {
+  if (Array.isArray(ids) && ids.length === 0) return [];
+  const filter = Array.isArray(ids) ? ` WHERE d.id IN (${ids.map(() => "?").join(",")})` : "";
+  const rows = await dbAll(env, `${PRICE_SELECT}${filter} ORDER BY p.sort, d.sort, d.id`, ids || []);
+  return rows.map(priceJson);
+}
+
+function pricesUpdatedAt(items) {
+  let latest = "";
+  for (const it of items) {
+    if (it.last_change && it.last_change.changed_at > latest) latest = it.last_change.changed_at;
+  }
+  return latest || null;
+}
+
+async function handleAdminPrices(env) {
+  const items = await priceRows(env, null);
+  return json({ items, updated_at: pricesUpdatedAt(items) });
+}
+
+async function handleAdminPriceHistory(env, url) {
+  const limit = Math.min(500, Math.max(1, num(url.searchParams.get("limit")) || 100));
+  const denom = num(url.searchParams.get("denomination_id"));
+  const where = denom ? "WHERE denomination_id = ?" : "";
+  const args = denom ? [denom, limit] : [limit];
+  // ORDER BY id DESC = newest-first insertion order, served by the rowid index.
+  // idx_price_changes_time is reserved for future changed_at range filters.
+  const rows = await dbAll(env,
+    `SELECT id, denomination_id, sku, label, old_price, new_price, old_compare_at, new_compare_at,
+            old_active, new_active, note, source, changed_at, request_id
+       FROM price_changes ${where} ORDER BY id DESC LIMIT ?`, args);
+  return json({ items: rows });
+}
 
 async function handleAdminList(env, url) {
   const status = sanitizeText(url.searchParams.get("status"), 20);
