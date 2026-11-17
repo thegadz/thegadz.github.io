@@ -606,7 +606,12 @@ Test-Case "admin prices mengembalikan 310 nominal dengan field wajib" {
   $r = Invoke-Api -Path "/api/admin/prices" -Headers (Get-AdminHeaders)
   Assert-Equal 200 $r.Status "status daftar harga"
   Assert-Equal 310 $r.Json.items.Count "jumlah nominal"
-  Assert-True ($null -ne $r.Json.updated_at) "updated_at wajib ada"
+  # updated_at = null sampai perubahan harga pertama tercatat (UI menampilkan
+  # "belum pernah"), jadi yang diuji adalah tipe nilainya, bukan keberadaannya.
+  Assert-True ($r.Json.PSObject.Properties.Name -contains "updated_at") "updated_at wajib ada di respons"
+  if ($null -ne $r.Json.updated_at) {
+    Assert-Match '^\d{4}-\d{2}-\d{2}T' ([string]$r.Json.updated_at) "updated_at harus ISO-8601 bila terisi"
+  }
   foreach ($it in $r.Json.items) {
     Assert-True ($it.id -is [int] -and $it.id -ge 1) "id nominal tidak valid"
     Assert-True ($it.sku.Length -gt 0) "sku kosong pada nominal $($it.id)"
