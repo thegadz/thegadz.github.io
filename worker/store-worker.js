@@ -141,7 +141,7 @@ async function isAdmin(request, env) {
 
 async function readJson(request) {
   const text = await request.text();
-  if (text.length > 20000) throw new HttpError(413, "payload_too_large", "Payload terlalu besar.");
+  if (text.length > 200000) throw new HttpError(413, "payload_too_large", "Payload terlalu besar.");
   if (!text) return {};
   try {
     const parsed = JSON.parse(text);
@@ -460,6 +460,7 @@ async function route(request, env, url) {
   }
   if (method === "GET" && path === "/api/admin/prices/history") return handleAdminPriceHistory(env, url);
   if (method === "GET" && path === "/api/admin/prices") return handleAdminPrices(env);
+  if (method === "PATCH" && path === "/api/admin/prices") return handleAdminPricesUpdate(env, request);
   const adminOrderMatch = path.match(/^\/api\/admin\/orders\/(TG[A-Z0-9]{6,12})$/);
   if (adminOrderMatch && method === "GET") {
     return handleAdminOrder(env, adminOrderMatch[1]);
@@ -976,6 +977,97 @@ async function handleAdminPriceHistory(env, url) {
             old_active, new_active, note, source, changed_at, request_id
        FROM price_changes ${where} ORDER BY id DESC LIMIT ?`, args);
   return json({ items: rows });
+}
+
+const MAX_PRICE = 1000000000;
+
+function pricePatchItem(raw, index) {
+  const id = raw && typeof raw.id === "number" ? raw.id : NaN;
+  if (!Number.isInteger(id) || id < 1) {
+    throw new HttpError(400, "invalid_denomination", "id nominal tidak valid");
+  }
+  const item = { id: id, touched: false };
+  if (raw.price !== undefined) {
+    const price = raw.price;
+    if (typeof price !== "number" || !Number.isInteger(price) || price < 1 || price > MAX_PRICE) {
+      throw new HttpError(400, "invalid_price", "harga harus bilangan bulat rupiah lebih dari 0");
+    }
+    item.price = price; item.touched = true;
+  }
+  if (raw.active !== undefined) {
+    const rawActive = raw.active;
+    const active = rawActive === true || rawActive === 1 ? 1
+      : rawActive === false || rawActive === 0 ? 0 : NaN;
+    if (active !== 0 && active !== 1) throw new HttpError(400, "invalid_active", "status aktif tidak valid");
+    item.active = active; item.touched = true;
+  }
+  if (raw.compare_at !== undefined) {
+    if (typeof raw.compare_at !== "number" || !Number.isInteger(raw.compare_at) || raw.compare_at < 0) {
+      throw new HttpError(400, "invalid_compare_at", "harga coret harus 0 atau lebih besar/sama dengan harga jual");
+    }
+    item.compare_at = raw.compare_at; item.touched = true;
+  }
+  if (raw.note !== undefined) {
+    const note = sanitizeText(String(raw.note), 200);
+    if (String(raw.note).trim().length > 200) throw new HttpError(400, "invalid_note", "catatan maksimal 200 karakter");
+    item.note = note; item.touched = true;
+  }
+  return item;
+}
+
+async function handleAdminPricesUpdate(env, request) {
+  const body = await readJson(request);
+  const rawItems = Array.isArray(body && body.items) ? body.items : [];
+  if (!rawItems.length) throw new HttpError(400, "invalid_items", "tidak ada item yang dikirim");
+  if (rawItems.length > 50) throw new HttpError(400, "too_many_items", "maksimal 50 harga per permintaan");
+
+  const ids = rawItems
+    .map((r) => (r && typeof r.id === "number" ? r.id : NaN))
+    .filter((id) => Number.isInteger(id) && id >= 1);
+  if (!ids.length) throw new HttpError(400, "invalid_denomination", "id nominal tidak valid");
+  if (new Set(ids).size !== ids.length) {
+    throw new HttpError(400, "invalid_denomination", "id nominal ganda");
+  }
+  const current = await priceRows(env, ids);
+  const byId = new Map(current.map((r) => [r.id, r]));
+
+  const requestId = (request.headers.get("cf-ray") || "") + "-" + Date.now() + "-" + crypto.randomUUID().slice(0, 8);
+  const changedAt = nowIso();
+  const statements = [];
+  let changed = 0;
+
+  for (let i = 0; i < rawItems.length; i++) {
+    const item = pricePatchItem(rawItems[i], i);
+    const row = byId.get(item.id);
+    if (!row) throw new HttpError(400, "invalid_denomination", "nominal " + item.id + " tidak ditemukan");
+    const price = item.price !== undefined ? item.price : row.price;
+    const compareAt = item.compare_at !== undefined ? item.compare_at : row.compare_at;
+    const active = item.active !== undefined ? item.active : row.active;
+    if (compareAt !== 0 && compareAt < price) {
+      throw new HttpError(400, "invalid_compare_at", "harga coret harus 0 atau lebih besar/sama dengan harga jual");
+    }
+    // Aturan note (spec §5.3): catatan hanya bermakna bila ada perubahan lain.
+    // Item tanpa perubahan tidak menulis apa pun, termasuk catatannya.
+    if (price === row.price && compareAt === row.compare_at && active === row.active) continue;
+    changed++;
+    statements.push(env.DB.prepare(
+      "UPDATE denominations SET price = ?, compare_at = ?, active = ? WHERE id = ?"
+    ).bind(price, compareAt, active, item.id));
+    statements.push(env.DB.prepare(
+      `INSERT INTO price_changes (denomination_id, sku, label, old_price, new_price, old_compare_at,
+        new_compare_at, old_active, new_active, note, source, changed_at, request_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'admin', ?, ?)`
+    ).bind(item.id, row.sku, row.label, row.price, price, row.compare_at, compareAt,
+           row.active, active, item.note || "", changedAt, requestId));
+  }
+
+  // env.DB.batch() runs every statement in one implicit transaction, so a failed
+  // audit insert rolls the UPDATEs back too (all-or-nothing).
+  // Exactly one batch() call per request — the whole statement array is built first
+  // and flushed once; do not split it across calls, or each call becomes its own transaction.
+  if (statements.length) await env.DB.batch(statements);
+  const items = await priceRows(env, ids);
+  return json({ changed, items });
 }
 
 async function handleAdminList(env, url) {
