@@ -565,6 +565,201 @@ Test-Case "proof can be rejected with a reason and re-uploaded" {
   Assert-Equal "fulfilled" $done.Json.order.status "fulfilled status"
 }
 
+# ---------------------------------------------------------------- harga
+# Probe: pakai nominal aktif pertama sebagai sasaran uji tetap. Semua tes di
+# blok ini mengembalikan nilai awal di `finally` supaya data katalog tidak ikut
+# berubah saat tes dijalankan berulang.
+$script:PriceProbe = (Invoke-Api -Path "/api/admin/prices" -Headers (Get-AdminHeaders)).Json.items |
+  Where-Object { $_.active -eq 1 } | Select-Object -First 1
+if ($null -eq $script:PriceProbe) { throw "Tidak ada nominal aktif untuk diuji" }
+$script:PriceStart = [int]$script:PriceProbe.price
+$script:PriceSlug = $script:PriceProbe.product_slug
+$script:PriceDid = $script:PriceProbe.id
+$script:PriceStartCompare = [int]$script:PriceProbe.compare_at
+
+# requires_zone tidak dikembalikan oleh /api/admin/prices, jadi ambil sekali dari
+# detail produk supaya body order di bawah hanya menyertakan zone saat perlu.
+$script:PriceZone = ""
+$script:PriceProduct = ($script:PriceProbe.product_slug)
+$d = Invoke-Api -Path "/api/products/$($script:PriceProduct)"
+if ($d.Status -eq 200) {
+  $script:PriceRequiresZone = [bool]$d.Json.product.requires_zone
+  if ($script:PriceRequiresZone) { $script:PriceZone = "2145" }
+}
+
+function Set-PricePatch($headers, $item) {
+  return Invoke-Api -Method PATCH -Path "/api/admin/prices" -Headers $headers -Body @{ items = @($item) }
+}
+
+function New-PriceOrderBody([string]$playerId) {
+  $body = @{ product_slug = $script:PriceSlug; denomination_id = $script:PriceDid; player_id = $playerId }
+  if ($script:PriceZone) { $body.zone_id = $script:PriceZone }
+  return $body
+}
+
+Test-Case "admin prices tanpa token ditolak" {
+  $r = Invoke-Api -Path "/api/admin/prices" -Headers @{}
+  Assert-Equal 401 $r.Status "harus 401 tanpa token"
+}
+
+Test-Case "admin prices mengembalikan 310 nominal dengan field wajib" {
+  $r = Invoke-Api -Path "/api/admin/prices" -Headers (Get-AdminHeaders)
+  Assert-Equal 200 $r.Status "status daftar harga"
+  Assert-Equal 310 $r.Json.items.Count "jumlah nominal"
+  Assert-True ($null -ne $r.Json.updated_at) "updated_at wajib ada"
+  foreach ($it in $r.Json.items) {
+    Assert-True ($it.id -is [int] -and $it.id -ge 1) "id nominal tidak valid"
+    Assert-True ($it.sku.Length -gt 0) "sku kosong pada nominal $($it.id)"
+    Assert-True ($it.label.Length -gt 0) "label kosong pada nominal $($it.id)"
+    Assert-True ($it.product_slug.Length -gt 0) "product_slug kosong pada nominal $($it.id)"
+    Assert-True ($it.product_name.Length -gt 0) "product_name kosong pada nominal $($it.id)"
+    Assert-True ($it.category_name.Length -gt 0) "category_name kosong pada nominal $($it.id)"
+    Assert-True ($it.price -gt 0) "price kosong pada nominal $($it.id)"
+    Assert-True ($it.compare_at -ge 0) "compare_at tidak valid pada nominal $($it.id)"
+    Assert-True ($it.active -eq 0 -or $it.active -eq 1) "active tidak valid pada nominal $($it.id)"
+    Assert-True ($it.PSObject.Properties.Name -contains "last_change") "last_change wajib ada pada nominal $($it.id)"
+    if ($null -ne $it.last_change) {
+      Assert-True ($it.last_change.new_price -gt 0) "last_change.new_price tidak valid pada nominal $($it.id)"
+      Assert-Match '^\d{4}-\d{2}-\d{2}T' ([string]$it.last_change.changed_at) "last_change.changed_at tidak valid pada nominal $($it.id)"
+    }
+  }
+}
+
+Test-Case "naik harga tercermin di product dan catalog" {
+  $newPrice = $script:PriceStart + 2500
+  try {
+    $res = Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; price = $newPrice }
+    Assert-Equal 200 $res.Status "patch harga"
+    Assert-Equal $newPrice (@($res.Json.items | Where-Object { $_.id -eq $script:PriceDid })[0].price) "harga baru di respons"
+
+    $detail = Invoke-Api -Path "/api/products/$($script:PriceSlug)"
+    $row = @($detail.Json.denominations | Where-Object { $_.id -eq $script:PriceDid })[0]
+    Assert-Equal $newPrice $row.price "harga di product detail"
+
+    $cat = Invoke-Api -Path "/api/catalog"
+    $prod = @($cat.Json.categories.products | Where-Object { $_.slug -eq $script:PriceSlug })[0]
+    $all = @((Invoke-Api -Path "/api/products/$($script:PriceSlug)").Json.denominations | Where-Object { $_.id -ne $script:PriceDid })
+    $expectedMin = $newPrice
+    foreach ($x in $all) { if ($x.price -lt $expectedMin) { $expectedMin = $x.price } }
+    Assert-Equal $expectedMin $prod.min_price "min_price di catalog setelah naik harga"
+  } finally {
+    Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; price = $script:PriceStart } | Out-Null
+  }
+}
+
+Test-Case "perubahan harga menulis baris audit history" {
+  $newPrice = $script:PriceStart + 4000
+  $before = (Invoke-Api -Path "/api/admin/prices/history?denomination_id=$($script:PriceDid)&limit=1" -Headers (Get-AdminHeaders)).Json.items
+  $beforeTop = if ($before.Count -gt 0) { $before[0].id } else { 0 }
+  try {
+    $res = Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; price = $newPrice; note = "tes audit" }
+    Assert-Equal 200 $res.Status "patch harga untuk audit"
+    Assert-Equal 1 $res.Json.changed "patch audit harus mengubah 1 nominal"
+    $hist = Invoke-Api -Path "/api/admin/prices/history?denomination_id=$($script:PriceDid)&limit=10" -Headers (Get-AdminHeaders)
+    Assert-Equal 200 $hist.Status "status history"
+    $row = @($hist.Json.items | Where-Object { $_.id -gt $beforeTop })[0]
+    if ($null -eq $row) { throw "baris audit baru tidak ditemukan (beforeTop=$beforeTop, count=$($hist.Json.items.Count))" }
+    Assert-Equal $script:PriceDid $row.denomination_id "denomination_id baris audit"
+    Assert-Equal $script:PriceStart $row.old_price "old_price baris audit"
+    Assert-Equal $newPrice $row.new_price "new_price baris audit"
+    Assert-Equal "admin" $row.source "source baris audit"
+    Assert-Equal "tes audit" $row.note "note baris audit"
+    Assert-Match '^\d{4}-\d{2}-\d{2}T' ([string]$row.changed_at) "changed_at baris audit"
+  } finally {
+    Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; price = $script:PriceStart } | Out-Null
+  }
+}
+
+Test-Case "compare_at di bawah harga ditolak dan harga tidak berubah" {
+  if ($script:PriceStart -lt 2) { return }
+  $res = Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; price = $script:PriceStart; compare_at = $script:PriceStart - 1 }
+  Assert-Equal 400 $res.Status "compare_at di bawah harga"
+  Assert-Equal "invalid_compare_at" $res.Json.error "kode error compare_at"
+  $after = (Invoke-Api -Path "/api/admin/prices" -Headers (Get-AdminHeaders)).Json.items |
+    Where-Object { $_.id -eq $script:PriceDid } | Select-Object -First 1
+  Assert-Equal $script:PriceStart $after.price "harga tidak boleh berubah"
+  Assert-Equal $script:PriceStartCompare $after.compare_at "compare_at tidak boleh berubah"
+}
+
+Test-Case "harga nol negatif dan desimal ditolak" {
+  $zero = Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; price = 0 }
+  Assert-Equal 400 $zero.Status "harga nol"
+  Assert-Equal "invalid_price" $zero.Json.error "kode error harga nol"
+  $neg = Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; price = -100 }
+  Assert-Equal 400 $neg.Status "harga negatif"
+  Assert-Equal "invalid_price" $neg.Json.error "kode error harga negatif"
+  $dec = Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; price = 1500.5 }
+  Assert-Equal 400 $dec.Status "harga desimal"
+  Assert-Equal "invalid_price" $dec.Json.error "kode error harga desimal"
+}
+
+Test-Case "nominal nonaktif ditolak saat order" {
+  try {
+    $off = Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; active = 0 }
+    Assert-Equal 200 $off.Status "nonaktifkan nominal"
+    $r = Invoke-Api -Method POST -Path "/api/orders" -Body (New-PriceOrderBody "88291034")
+    Assert-Equal 400 $r.Status "order nominal nonaktif"
+    Assert-Equal "invalid_denomination" $r.Json.error "kode error nominal nonaktif"
+  } finally {
+    Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; active = 1 } | Out-Null
+  }
+}
+
+Test-Case "order lama tetap memakai harga saat dibuat" {
+  $script:OrderA = $null
+  $script:OrderB = $null
+  try {
+    $priceA = $script:PriceStart
+    $priceB = $script:PriceStart + 7000
+    $createA = Invoke-Api -Method POST -Path "/api/orders" -Body (New-PriceOrderBody "88291034")
+    if ($createA.Status -eq 409 -or ($createA.Status -eq 400 -and $createA.Json.error -eq "out_of_stock")) {
+      Write-Host "SKIP  order lama tetap memakai harga saat dibuat :: stok jatah habis ($($createA.Status) $($createA.Json.error))" -ForegroundColor Yellow
+      return
+    }
+    Assert-Equal 201 $createA.Status "order A dibuat"
+    Assert-Equal $priceA $createA.Json.order.subtotal "subtotal order A"
+    $script:OrderA = $createA.Json.order.public_id
+
+    $bump = Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; price = $priceB }
+    Assert-Equal 200 $bump.Status "naikkan harga ke B"
+
+    $createB = Invoke-Api -Method POST -Path "/api/orders" -Body (New-PriceOrderBody "88291035")
+    if ($createB.Status -eq 409 -or ($createB.Status -eq 400 -and $createB.Json.error -eq "out_of_stock")) {
+      Write-Host "SKIP  order lama tetap memakai harga saat dibuat :: stok jatah habis ($($createB.Status) $($createB.Json.error))" -ForegroundColor Yellow
+      return
+    }
+    Assert-Equal 201 $createB.Status "order B dibuat"
+    Assert-Equal $priceB $createB.Json.order.subtotal "subtotal order B"
+    $script:OrderB = $createB.Json.order.public_id
+
+    $getA = Invoke-Api -Path "/api/orders/$($script:OrderA)"
+    Assert-Equal 200 $getA.Status "ambil order A"
+    Assert-Equal $priceA $getA.Json.order.subtotal "order A harus tetap harga lama"
+  } finally {
+    Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; price = $script:PriceStart } | Out-Null
+    if ($script:OrderA) { Invoke-Api -Method POST -Path "/api/admin/orders/$($script:OrderA)/cancel" -Headers (Get-AdminHeaders) -Body @{} | Out-Null }
+    if ($script:OrderB) { Invoke-Api -Method POST -Path "/api/admin/orders/$($script:OrderB)/cancel" -Headers (Get-AdminHeaders) -Body @{} | Out-Null }
+  }
+}
+
+Test-Case "satu item invalid membatalkan seluruh patch" {
+  $newPrice = $script:PriceStart + 5500
+  $res = Set-PricePatch (Get-AdminHeaders) @(
+    @{ id = $script:PriceDid; price = $newPrice },
+    @{ id = 999999; price = 1000 }
+  )
+  Assert-Equal 400 $res.Status "patch campuran harus 400"
+  Assert-Equal "invalid_denomination" $res.Json.error "kode error patch campuran"
+  $after = (Invoke-Api -Path "/api/admin/prices" -Headers (Get-AdminHeaders)).Json.items |
+    Where-Object { $_.id -eq $script:PriceDid } | Select-Object -First 1
+  Assert-Equal $script:PriceStart $after.price "item valid tidak boleh ikut berubah"
+  # Verifikasi akhir: probe kembali ke kondisi awal setelah seluruh blok.
+  $final = @((Invoke-Api -Path "/api/admin/prices" -Headers (Get-AdminHeaders)).Json.items | Where-Object { $_.id -eq $script:PriceDid })[0]
+  Assert-Equal $script:PriceStart $final.price "harga harus pulih ke nilai awal"
+  Assert-Equal $script:PriceStartCompare $final.compare_at "compare_at harus pulih"
+  Assert-Equal 1 $final.active "active harus pulih"
+}
+
 Write-Host ""
 Write-Host "Result: $($script:Pass) passed, $($script:Fail) failed" -ForegroundColor $(if ($script:Fail -eq 0) { "Green" } else { "Red" })
 if ($script:Fail -gt 0) {
