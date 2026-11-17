@@ -101,6 +101,11 @@ $migrations = [ordered]@{
   products = [ordered]@{
     image = "TEXT NOT NULL DEFAULT ''"
   }
+  denominations = [ordered]@{
+    daily_quota = "INTEGER NOT NULL DEFAULT 0"
+    quota_date  = "TEXT NOT NULL DEFAULT ''"
+    quota_note  = "TEXT NOT NULL DEFAULT ''"
+  }
 }
 foreach ($table in $migrations.Keys) {
   $columns = $migrations[$table]

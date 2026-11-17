@@ -36,6 +36,9 @@ CREATE TABLE IF NOT EXISTS denominations (
   sku TEXT NOT NULL UNIQUE,
   supplier_code TEXT NOT NULL DEFAULT '',
   active INTEGER NOT NULL DEFAULT 1,
+  daily_quota INTEGER NOT NULL DEFAULT 0,
+  quota_date TEXT NOT NULL DEFAULT '',
+  quota_note TEXT NOT NULL DEFAULT '',
   sort INTEGER NOT NULL DEFAULT 0
 );
 
@@ -61,6 +64,23 @@ CREATE TABLE IF NOT EXISTS price_changes (
 
 CREATE INDEX IF NOT EXISTS idx_price_changes_denom ON price_changes(denomination_id, changed_at);
 CREATE INDEX IF NOT EXISTS idx_price_changes_time ON price_changes(changed_at);
+
+-- Audit perubahan jatah. Tanpa FK: riwayat tetap ada walau nominal dihapus.
+CREATE TABLE IF NOT EXISTS stock_changes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  denomination_id INTEGER NOT NULL,
+  sku TEXT NOT NULL DEFAULT '',
+  label TEXT NOT NULL DEFAULT '',
+  old_quota INTEGER NOT NULL DEFAULT 0,
+  new_quota INTEGER NOT NULL DEFAULT 0,
+  old_note TEXT NOT NULL DEFAULT '',
+  new_note TEXT NOT NULL DEFAULT '',
+  quota_date TEXT NOT NULL DEFAULT '',
+  changed_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_stock_changes_denom ON stock_changes(denomination_id, changed_at);
+CREATE INDEX IF NOT EXISTS idx_stock_changes_time ON stock_changes(changed_at);
 
 CREATE TABLE IF NOT EXISTS orders (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -97,6 +117,8 @@ CREATE TABLE IF NOT EXISTS orders (
 
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_orders_expiry ON orders(status, expires_at);
+-- Menopang hitungan "terjual" per hari: WHERE status='paid' AND paid_at >= ...
+CREATE INDEX IF NOT EXISTS idx_orders_paid_at ON orders(status, paid_at);
 
 CREATE TABLE IF NOT EXISTS order_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
