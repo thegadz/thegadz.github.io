@@ -41,6 +41,27 @@ CREATE TABLE IF NOT EXISTS denominations (
 
 CREATE INDEX IF NOT EXISTS idx_denominations_product ON denominations(product_id, active, sort);
 
+-- Audit perubahan harga. Tanpa FK: riwayat tetap ada walau nominal dihapus.
+CREATE TABLE IF NOT EXISTS price_changes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  denomination_id INTEGER NOT NULL,
+  sku TEXT NOT NULL DEFAULT '',
+  label TEXT NOT NULL DEFAULT '',
+  old_price INTEGER NOT NULL,
+  new_price INTEGER NOT NULL,
+  old_compare_at INTEGER NOT NULL DEFAULT 0,
+  new_compare_at INTEGER NOT NULL DEFAULT 0,
+  old_active INTEGER NOT NULL DEFAULT 1,
+  new_active INTEGER NOT NULL DEFAULT 1,
+  note TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL DEFAULT 'admin',
+  changed_at TEXT NOT NULL,
+  request_id TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_price_changes_denom ON price_changes(denomination_id, changed_at);
+CREATE INDEX IF NOT EXISTS idx_price_changes_time ON price_changes(changed_at);
+
 CREATE TABLE IF NOT EXISTS orders (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   public_id TEXT NOT NULL UNIQUE,
