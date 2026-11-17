@@ -119,6 +119,7 @@ foreach ($table in $migrations.Keys) {
 
 if (-not $SkipSeed) {
   Write-Host "Applying catalog seed..." -ForegroundColor Cyan
+  Write-Host "  seed: upsert (harga & jatah admin dipertahankan)" -ForegroundColor DarkGray
   $seedStatements = Get-SqlStatements $seedFile
   $i = 0
   foreach ($sql in $seedStatements) {
