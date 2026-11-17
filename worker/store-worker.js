@@ -1251,12 +1251,38 @@ function adminPage() {
   .proof.waiting{border-color:#fcd34d;background:#fffbeb}
   .rej{margin-top:8px;font-size:12px;color:var(--red)}
   .empty{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:32px;text-align:center;color:var(--muted)}
-  @media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}main{padding:14px}}
+  .tabs{display:flex;gap:4px}
+  .tabs button{background:transparent;border:1px solid transparent;color:#cbd5e1;border-radius:8px;padding:7px 12px}
+  .tabs button.on{background:#1e293b;border-color:#334155;color:#fff}
+  .pcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+  .pcard h3{margin:0 0 8px;font-size:14px;color:var(--muted)}
+  table.pgrid{width:100%;border-collapse:collapse;font-size:13px}
+  .pgrid th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700;padding:4px 6px;border-bottom:1px solid var(--line)}
+  .pgrid td{padding:5px 6px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+  .pgrid tr:last-child td{border-bottom:0}
+  .pgrid input[type=number]{width:110px;text-align:right;padding:8px 10px}
+  .pgrid input[type=checkbox]{width:auto}
+  .pgrid tr.dim{opacity:.5}
+  .pgrid .delta{color:var(--muted);font-size:12px;font-family:ui-monospace,Consolas,monospace}
+  .pgrid .last{color:var(--muted);font-size:12px;white-space:nowrap}
+  .ph{margin:24px 0 8px;font-size:15px}
+  .history{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+  .history div{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .history div:last-child{border-bottom:0}
+  .history .t{color:var(--muted);white-space:nowrap}
+  @media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}main{padding:14px}.pcard{overflow-x:auto}.pgrid{font-size:12px}.pgrid td,.pgrid th{padding:4px 4px}.pgrid input[type=number]{width:88px}}
 </style>
 </head>
 <body>
 <header>
-  <div><b>thegadzstore</b> <small>Admin pesanan</small></div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <b>thegadzstore</b>
+    <nav class="tabs">
+      <button type="button" data-tab="orders" class="on">Pesanan</button>
+      <button type="button" data-tab="prices">Harga</button>
+      <button type="button" data-tab="stock">Stok</button>
+    </nav>
+  </div>
   <button id="logout" hidden>Keluar</button>
 </header>
 <main>
@@ -1269,22 +1295,42 @@ function adminPage() {
   </section>
 
   <section id="dashboard" hidden>
-    <div class="stats">
-      <div class="stat"><small>Menunggu bayar</small><b id="s-pending">0</b></div>
-      <div class="stat"><small>Lunas</small><b id="s-paid">0</b></div>
-      <div class="stat"><small>Selesai</small><b id="s-fulfilled">0</b></div>
-      <div class="stat"><small>Kedaluwarsa</small><b id="s-expired">0</b></div>
-    </div>
-    <div class="filters" id="filters">
-      <button data-status="" class="on">Semua</button>
-      <button data-status="pending">Menunggu</button>
-      <button data-status="paid">Lunas</button>
-      <button data-status="fulfilled">Selesai</button>
-      <button data-status="expired">Kedaluwarsa</button>
-      <button data-status="cancelled">Batal</button>
-    </div>
-    <p class="notice" id="notice"></p>
-    <div class="orders" id="orders"></div>
+    <section data-panel="orders">
+      <div class="stats">
+        <div class="stat"><small>Menunggu bayar</small><b id="s-pending">0</b></div>
+        <div class="stat"><small>Lunas</small><b id="s-paid">0</b></div>
+        <div class="stat"><small>Selesai</small><b id="s-fulfilled">0</b></div>
+        <div class="stat"><small>Kedaluwarsa</small><b id="s-expired">0</b></div>
+      </div>
+      <div class="filters" id="filters">
+        <button data-status="" class="on">Semua</button>
+        <button data-status="pending">Menunggu</button>
+        <button data-status="paid">Lunas</button>
+        <button data-status="fulfilled">Selesai</button>
+        <button data-status="expired">Kedaluwarsa</button>
+        <button data-status="cancelled">Batal</button>
+      </div>
+      <p class="notice" id="notice"></p>
+      <div class="orders" id="orders"></div>
+    </section>
+    <section data-panel="prices" hidden>
+      <div class="filters">
+        <input id="p-q" placeholder="Cari nominal / SKU" style="min-width:200px;width:auto" />
+        <select id="p-cat" style="padding:12px 14px;border:1px solid var(--line);border-radius:9px;font:inherit;background:#fff">
+          <option value="">Semua kategori</option>
+        </select>
+        <label style="display:flex;gap:6px;align-items:center;color:var(--muted);font-size:13px">
+          <input type="checkbox" id="p-all" style="width:auto" /> tampilkan nonaktif
+        </label>
+        <span style="flex:1"></span>
+        <input id="p-note" placeholder="Catatan perubahan (opsional)" maxlength="200" style="min-width:220px;width:auto" />
+        <button class="primary" id="p-save" type="button" disabled style="width:auto;margin-top:0;padding:11px 18px">Simpan</button>
+      </div>
+      <p class="notice" id="p-notice"></p>
+      <div id="p-list"></div>
+      <h3 class="ph">Riwayat perubahan</h3>
+      <div id="p-history" class="history"></div>
+    </section>
   </section>
 </main>
 <script>
@@ -1292,6 +1338,7 @@ function adminPage() {
   var token = sessionStorage.getItem("gadz_admin_token") || "";
   var status = "";
   var timer = null;
+  var tab = "orders";
 
   function $(id) { return document.getElementById(id); }
   function esc(v) {
@@ -1334,7 +1381,32 @@ function adminPage() {
     $("logout").hidden = false;
     $("loginErr").hidden = true;
     if (timer) clearInterval(timer);
-    timer = setInterval(load, 15000);
+    timer = setInterval(refreshActive, 15000);
+    setTab(tab);
+  }
+  function setTab(name) {
+    tab = name;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (b) {
+      b.classList.toggle("on", b.getAttribute("data-tab") === name);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-panel]"), function (p) {
+      p.hidden = p.getAttribute("data-panel") !== name;
+    });
+  }
+  function showTab(name) {
+    setTab(name);
+    if (name === "orders") load();
+    else if (name === "prices") loadPrices();
+    else if (name === "stock" && typeof loadStock === "function") loadStock();
+  }
+  function editingPrices() {
+    var a = document.activeElement;
+    return !!(a && $("p-list") && $("p-list").contains(a));
+  }
+  function refreshActive() {
+    if (tab === "orders") load();
+    else if (tab === "prices") { if (!editingPrices()) loadPrices(); }
+    else if (typeof loadStock === "function") loadStock();
   }
   function actionButtons(o) {
     var html = "";
@@ -1429,6 +1501,206 @@ function adminPage() {
       .catch(function (err) { $("notice").textContent = "Gagal: " + err.message; });
   }
 
+  var priceState = { items: [], draft: {} };
+  var warnedOff = {};
+
+  function priceDraftOf(it) { return priceState.draft[it.id] || it; }
+  function priceOriginOf(id) {
+    for (var i = 0; i < priceState.items.length; i++) if (priceState.items[i].id === id) return priceState.items[i];
+    return null;
+  }
+  function priceRowsHtml(items) {
+    var groups = [];
+    var index = {};
+    items.forEach(function (it) {
+      if (!index[it.product_name]) { index[it.product_name] = []; groups.push(it.product_name); }
+      index[it.product_name].push(it);
+    });
+    if (!groups.length) return '<div class="empty">Tidak ada nominal yang cocok.</div>';
+    return groups.map(function (name) {
+      return '<div class="pcard"><h3>' + esc(name) + '</h3>' +
+        '<table class="pgrid"><thead><tr><th>Nominal (SKU)</th><th>Harga</th><th>Coret</th><th>Aktif</th><th>Terakhir</th></tr></thead><tbody>' +
+        index[name].map(function (it) {
+          var d = priceDraftOf(it);
+          var off = !it.active || !it.product_active;
+          var last = it.last_change
+            ? rupiah(it.last_change.old_price) + " → " + rupiah(it.last_change.new_price)
+            : "—";
+          var attr = ' data-id="' + it.id + '"' + (off ? ' class="dim"' : '');
+          return '<tr' + attr + '>' +
+            '<td>' + esc(it.label) + '<div class="delta">' + esc(it.sku) + '</div></td>' +
+            '<td><input type="number" min="1" step="1" data-k="price" value="' + esc(d.price) + '" /></td>' +
+            '<td><input type="number" min="0" step="1" data-k="compare_at" value="' + esc(d.compare_at) + '" /></td>' +
+            '<td><input type="checkbox" data-k="active"' + (d.active ? " checked" : "") + ' /></td>' +
+            '<td class="last">' + esc(last) + '</td>' +
+          '</tr>';
+        }).join("") +
+        '</tbody></table></div>';
+    }).join("");
+  }
+  function priceFiltered() {
+    var q = $("p-q").value.trim().toLowerCase();
+    var cat = $("p-cat").value;
+    var showAll = $("p-all").checked;
+    return priceState.items.filter(function (it) {
+      if (!showAll && (!it.active || !it.product_active)) return false;
+      if (cat && it.category_name !== cat) return false;
+      if (q && (it.label + " " + it.sku).toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+  function renderPrices() {
+    $("p-list").innerHTML = priceRowsHtml(priceFiltered());
+    updateSaveButton();
+  }
+  function priceDirtyList() {
+    return Object.keys(priceState.draft).map(function (id) { return priceOriginOf(Number(id)); }).filter(Boolean);
+  }
+  function updateSaveButton() {
+    var n = Object.keys(priceState.draft).length;
+    $("p-save").disabled = n === 0;
+    $("p-save").textContent = n ? "Simpan (" + n + ")" : "Simpan";
+  }
+  function fillCategories() {
+    var current = $("p-cat").value;
+    var names = [];
+    priceState.items.forEach(function (it) {
+      if (names.indexOf(it.category_name) === -1) names.push(it.category_name);
+    });
+    names.sort();
+    $("p-cat").innerHTML = '<option value="">Semua kategori</option>' + names.map(function (n) {
+      return '<option value="' + esc(n) + '">' + esc(n) + '</option>';
+    }).join("");
+    $("p-cat").value = names.indexOf(current) === -1 ? "" : current;
+  }
+  function loadPrices() {
+    $("p-notice").textContent = "Memuat harga...";
+    return api("/api/admin/prices").then(function (data) {
+      priceState.items = data.items || [];
+      // Buang draft yang nomornya sudah tidak ada di server.
+      Object.keys(priceState.draft).forEach(function (id) {
+        if (!priceOriginOf(Number(id))) delete priceState.draft[id];
+      });
+      fillCategories();
+      renderPrices();
+      $("p-notice").textContent = priceState.items.length + " nominal · terakhir diubah " +
+        (data.updated_at ? when(data.updated_at) : "belum pernah");
+      return loadHistory();
+    }).catch(function (err) {
+      $("p-notice").textContent = "Gagal memuat harga: " + err.message;
+    });
+  }
+  function loadHistory() {
+    return api("/api/admin/prices/history?limit=20").then(function (data) {
+      var rows = data.items || [];
+      $("p-history").innerHTML = rows.length ? rows.map(function (r) {
+        return "<div>" +
+          '<span class="t">' + esc(when(r.changed_at)) + "</span>" +
+          "<span>" + esc(r.sku) + "</span>" +
+          "<span>" + esc(rupiah(r.old_price) + " → " + rupiah(r.new_price)) + "</span>" +
+          (r.note ? "<span>" + esc(r.note) + "</span>" : "") +
+        "</div>";
+      }).join("") : '<div><span class="t">Belum ada riwayat perubahan.</span></div>';
+    }).catch(function (err) {
+      $("p-history").innerHTML = '<div><span class="t">Gagal memuat riwayat: ' + esc(err.message) + "</span></div>";
+    });
+  }
+  function onPriceEdit(e, isChange) {
+    var el = e.target;
+    var k = el.getAttribute("data-k");
+    if (!k) return;
+    var tr = el.closest("tr[data-id]");
+    if (!tr) return;
+    var id = Number(tr.getAttribute("data-id"));
+    var orig = priceOriginOf(id);
+    if (!orig) return;
+    var d = priceState.draft[id] || { price: orig.price, compare_at: orig.compare_at, active: orig.active };
+    if (k === "active") {
+      d.active = el.checked ? 1 : 0;
+    } else {
+      var v = parseInt(el.value, 10);
+      if (isNaN(v)) return;
+      d[k] = v;
+    }
+    if (d.price === orig.price && d.compare_at === orig.compare_at && d.active === orig.active) {
+      delete priceState.draft[id];
+    } else {
+      priceState.draft[id] = d;
+    }
+    updateSaveButton();
+    if (isChange && k === "active" && d.active === 0 && !warnedOff[id]) {
+      if (!confirm("Nominal ini akan hilang dari storefront dan tidak bisa dipesan. Lanjutkan?")) {
+        warnedOff[id] = 1;
+        el.checked = true;
+        d.active = orig.active;
+        if (d.price === orig.price && d.compare_at === orig.compare_at && d.active === orig.active) {
+          delete priceState.draft[id];
+        } else {
+          priceState.draft[id] = d;
+        }
+        updateSaveButton();
+        return;
+      }
+      delete warnedOff[id];
+    }
+    if (isChange && k === "active" && d.active === 1) delete warnedOff[id];
+  }
+  function savePrices() {
+    var ids = Object.keys(priceState.draft);
+    if (!ids.length) return;
+    var items = ids.map(function (id) {
+      var d = priceState.draft[id];
+      var orig = priceOriginOf(Number(id));
+      var body = { id: Number(id) };
+      if (d.price !== orig.price) body.price = Math.round(d.price);
+      if (d.compare_at !== orig.compare_at) body.compare_at = Math.round(d.compare_at);
+      if (d.active !== orig.active) body.active = d.active ? 1 : 0;
+      var note = $("p-note").value.trim();
+      if (note) body.note = note;
+      return body;
+    });
+    $("p-save").disabled = true;
+    $("p-notice").textContent = "Menyimpan " + items.length + " harga...";
+    var batches = [];
+    for (var i = 0; i < items.length; i += 50) batches.push(items.slice(i, i + 50));
+    var changed = 0;
+    var failed = 0;
+    var restoreNotice = function (summary) {
+      loadPrices().then(function () { $("p-notice").textContent = summary; }, function () { $("p-notice").textContent = summary; });
+    };
+    var run = function (n) {
+      if (n >= batches.length) {
+        if (failed) {
+          var summary = failed + " batch gagal, " + changed + " harga tersimpan. Draft yang gagal dipertahankan.";
+          $("p-notice").textContent = summary;
+          updateSaveButton();
+          restoreNotice(summary);
+          return;
+        }
+        priceState.draft = {};
+        $("p-note").value = "";
+        var okSummary = changed + " harga diperbarui";
+        $("p-notice").textContent = okSummary;
+        restoreNotice(okSummary);
+        return;
+      }
+      api("/api/admin/prices", "PATCH", { items: batches[n] }).then(function (data) {
+        changed += data.changed || 0;
+        // Sinkronkan nilai server untuk id yang berhasil.
+        (data.items || []).forEach(function (s) {
+          priceState.items.forEach(function (it, idx) { if (it.id === s.id) priceState.items[idx] = s; });
+          delete priceState.draft[s.id];
+        });
+        run(n + 1);
+      }).catch(function (err) {
+        failed++;
+        $("p-notice").textContent = "Gagal: " + err.message;
+        run(n + 1);
+      });
+    };
+    run(0);
+  }
+
   $("loginBtn").addEventListener("click", function () {
     token = $("token").value.trim();
     if (!token) { showLogin("Token wajib diisi."); return; }
@@ -1452,6 +1724,15 @@ function adminPage() {
     var btn = e.target.closest("[data-act]");
     if (!btn) return;
     runAction(btn.getAttribute("data-act"), btn.getAttribute("data-id"));
+  });
+  $("p-list").addEventListener("input", function (e) { onPriceEdit(e, false); });
+  $("p-list").addEventListener("change", function (e) { onPriceEdit(e, true); });
+  $("p-save").addEventListener("click", savePrices);
+  $("p-q").addEventListener("input", renderPrices);
+  $("p-cat").addEventListener("change", renderPrices);
+  $("p-all").addEventListener("change", renderPrices);
+  Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (b) {
+    b.addEventListener("click", function () { showTab(b.getAttribute("data-tab")); });
   });
 
   if (token) load(); else showLogin("");
