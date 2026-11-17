@@ -83,14 +83,28 @@ function Invoke-Api {
 }
 
 function Test-Case([string]$name, [scriptblock]$body) {
+  $script:CaseSkipped = $false
   try {
     & $body
+    # `return` di dalam body hanya keluar dari scriptblock itu dan tidak melempar
+    # error, jadi tanpa penanda ini tes yang di-SKIP dihitung PASS.
+    if ($script:CaseSkipped) {
+      $script:CaseSkipped = $false
+      return
+    }
     Write-Pass $name
   } catch {
+    $script:CaseSkipped = $false
     Write-Fail $name $_.Exception.Message
   }
 }
 
+# Hentikan satu tes tanpa menghitungnya sebagai PASS (juga tetap memicu `finally`).
+function Skip-Case([string]$reason) {
+  Write-Host "SKIP  $reason" -ForegroundColor Yellow
+  $script:CaseSkipped = $true
+  return
+}
 function Get-AdminHeaders {
   return @{ Authorization = "Bearer $AdminToken" }
 }
@@ -607,8 +621,9 @@ Test-Case "admin prices mengembalikan 310 nominal dengan field wajib" {
   Assert-Equal 200 $r.Status "status daftar harga"
   Assert-Equal 310 $r.Json.items.Count "jumlah nominal"
   # updated_at = null sampai perubahan harga pertama tercatat (UI menampilkan
-  # "belum pernah"), jadi yang diuji adalah tipe nilainya, bukan keberadaannya.
-  Assert-True ($r.Json.PSObject.Properties.Name -contains "updated_at") "updated_at wajib ada di respons"
+  # "belum pernah"). Assert tipe, bukan keberadaan: ConvertFrom-Json tetap membuat
+  # properti bernilai null, sehingga `-contains "updated_at"` tidak membuktikan apa pun.
+  Assert-True ($null -eq $r.Json.updated_at -or $r.Json.updated_at -is [string]) "updated_at harus null atau string"
   if ($null -ne $r.Json.updated_at) {
     Assert-Match '^\d{4}-\d{2}-\d{2}T' ([string]$r.Json.updated_at) "updated_at harus ISO-8601 bila terisi"
   }
@@ -676,7 +691,7 @@ Test-Case "perubahan harga menulis baris audit history" {
 }
 
 Test-Case "compare_at di bawah harga ditolak dan harga tidak berubah" {
-  if ($script:PriceStart -lt 2) { return }
+  if ($script:PriceStart -lt 2) { Skip-Case "compare_at di bawah harga :: harga awal $($script:PriceStart) tidak bisa diturunkan"; return }
   $res = Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; price = $script:PriceStart; compare_at = $script:PriceStart - 1 }
   Assert-Equal 400 $res.Status "compare_at di bawah harga"
   Assert-Equal "invalid_compare_at" $res.Json.error "kode error compare_at"
@@ -706,7 +721,7 @@ Test-Case "nominal nonaktif ditolak saat order" {
     Assert-Equal 400 $r.Status "order nominal nonaktif"
     Assert-Equal "invalid_denomination" $r.Json.error "kode error nominal nonaktif"
   } finally {
-    Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; active = 1 } | Out-Null
+    Set-PricePatch (Get-AdminHeaders) @{ id = $script:PriceDid; active = [int]$script:PriceProbe.active } | Out-Null
   }
 }
 
@@ -718,7 +733,7 @@ Test-Case "order lama tetap memakai harga saat dibuat" {
     $priceB = $script:PriceStart + 7000
     $createA = Invoke-Api -Method POST -Path "/api/orders" -Body (New-PriceOrderBody "88291034")
     if ($createA.Status -eq 409 -or ($createA.Status -eq 400 -and $createA.Json.error -eq "out_of_stock")) {
-      Write-Host "SKIP  order lama tetap memakai harga saat dibuat :: stok jatah habis ($($createA.Status) $($createA.Json.error))" -ForegroundColor Yellow
+      Skip-Case "order lama tetap memakai harga saat dibuat :: stok jatah habis ($($createA.Status) $($createA.Json.error))"
       return
     }
     Assert-Equal 201 $createA.Status "order A dibuat"
@@ -730,7 +745,7 @@ Test-Case "order lama tetap memakai harga saat dibuat" {
 
     $createB = Invoke-Api -Method POST -Path "/api/orders" -Body (New-PriceOrderBody "88291035")
     if ($createB.Status -eq 409 -or ($createB.Status -eq 400 -and $createB.Json.error -eq "out_of_stock")) {
-      Write-Host "SKIP  order lama tetap memakai harga saat dibuat :: stok jatah habis ($($createB.Status) $($createB.Json.error))" -ForegroundColor Yellow
+      Skip-Case "order lama tetap memakai harga saat dibuat :: stok jatah habis ($($createB.Status) $($createB.Json.error))"
       return
     }
     Assert-Equal 201 $createB.Status "order B dibuat"
