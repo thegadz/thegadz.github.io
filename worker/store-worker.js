@@ -318,6 +318,8 @@ function productJson(row) {
     description: row.description,
     min_price: row.min_price || 0,
     denomination_count: row.denomination_count || 0,
+    available_count: row.available_count || 0,
+    in_stock: row.in_stock === undefined ? true : !!row.in_stock,
   };
 }
 
@@ -534,11 +536,32 @@ async function handleCatalog(env) {
   );
   const prices = await dbAll(
     env,
-    `SELECT product_id, MIN(price) AS min_price, COUNT(*) AS denomination_count
-     FROM denominations WHERE active = 1 GROUP BY product_id`
+    `SELECT product_id, price, daily_quota FROM denominations WHERE active = 1`
   );
   const priceMap = {};
-  for (const row of prices) priceMap[row.product_id] = row;
+  for (const row of prices) {
+    const entry = priceMap[row.product_id] || (priceMap[row.product_id] = {
+      min_price: 0,
+      denomination_count: 0,
+      available_count: 0,
+      quota_limited: 0,
+    });
+    if (!entry.denomination_count || row.price < entry.min_price) entry.min_price = num(row.price);
+    entry.denomination_count++;
+    if (num(row.daily_quota) > 0) entry.quota_limited++;
+  }
+  // Quota-limited items can be sold out, so ask which are held (one query).
+  const limited = prices.filter((row) => num(row.daily_quota) > 0);
+  const held = limited.length ? await heldMap(env, limited.map((row) => num(row.id))) : new Map();
+  for (const row of limited) {
+    const entry = priceMap[row.product_id];
+    if (stockView(row, held.get(num(row.id)) || 0).available) entry.available_count++;
+  }
+  // Products without a quota are always available; count them without a lookup.
+  for (const key of Object.keys(priceMap)) {
+    const entry = priceMap[key];
+    entry.available_count += entry.denomination_count - entry.quota_limited;
+  }
 
   const categories = [];
   const categoryMap = {};
@@ -560,6 +583,8 @@ async function handleCatalog(env) {
         category_name: row.category_name,
         min_price: price.min_price || 0,
         denomination_count: price.denomination_count || 0,
+        available_count: price.available_count || 0,
+        in_stock: (price.available_count || 0) > 0,
       })
     );
   }
@@ -577,20 +602,31 @@ async function handleProduct(env, slug) {
   if (!product) throw new HttpError(404, "product_not_found", "Produk tidak ditemukan.");
   const denominations = await dbAll(
     env,
-    `SELECT id, label, price, compare_at, sku
+    `SELECT id, label, price, compare_at, sku, daily_quota, quota_date
      FROM denominations WHERE product_id = ? AND active = 1 ORDER BY sort, id`,
     [product.id]
   );
+  // One aggregated query for the whole product, not one per denomination.
+  const ids = denominations.map((row) => row.id);
+  const held = ids.length ? await heldMap(env, ids) : new Map();
+  let availableCount = 0;
+  const items = denominations.map((row) => {
+    const view = stockView(row, held.get(num(row.id)) || 0);
+    if (view.available) availableCount++;
+    return {
+      id: row.id,
+      label: row.label,
+      price: row.price,
+      compare_at: row.compare_at,
+      sku: row.sku,
+      in_stock: view.available,
+      remaining: view.remaining,
+    };
+  });
   return json(
     {
-      product: productJson(product),
-      denominations: denominations.map((row) => ({
-        id: row.id,
-        label: row.label,
-        price: row.price,
-        compare_at: row.compare_at,
-        sku: row.sku,
-      })),
+      product: productJson({ ...product, in_stock: availableCount > 0, available_count: availableCount }),
+      denominations: items,
     },
     200,
     env
