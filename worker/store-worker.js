@@ -69,6 +69,42 @@ function num(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function todayWib(date) {
+  const d = date ? new Date(date) : new Date();
+  return new Date(d.getTime() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+// Canonical "holds quota": paid, or still waiting for payment and not expired.
+// Every query using HELD_SQL must alias the table as `orders o`.
+const HELD_SQL = "(o.status = 'paid' OR (o.status = 'pending' AND o.expires_at > ?))";
+
+async function heldMap(env, ids) {
+  const now = nowIso();
+  const filter = Array.isArray(ids) ? ` AND o.denomination_id IN (${ids.map(() => "?").join(",")})` : "";
+  const args = [now].concat(Array.isArray(ids) ? ids : []);
+  const rows = await dbAll(
+    env,
+    `SELECT o.denomination_id AS id, COUNT(*) AS n FROM orders o
+      WHERE ${HELD_SQL}${filter} GROUP BY o.denomination_id`,
+    args
+  );
+  const map = new Map();
+  for (const row of rows) map.set(num(row.id), num(row.n));
+  return map;
+}
+
+// daily_quota = 0 means unlimited (remaining null). quota_date is only a
+// "refill me" hint, never a reset trigger ("" = never filled).
+function stockView(row, held) {
+  const quota = num(row.daily_quota);
+  const remaining = quota > 0 ? Math.max(0, quota - held) : null;
+  return {
+    remaining: remaining,
+    available: quota === 0 || remaining > 0,
+    quota_stale: quota > 0 && !!row.quota_date && row.quota_date !== todayWib(),
+  };
+}
+
 function envNumber(env, key, fallback) {
   const value = Number(env[key]);
   return Number.isFinite(value) ? value : fallback;
