@@ -615,7 +615,7 @@ async function handleCreateOrder(request, env) {
   const item = await dbFirst(
     env,
     `SELECT p.id AS product_id, p.slug, p.name, p.requires_zone, p.target_type,
-            d.id AS denomination_id, d.label, d.price
+            d.id AS denomination_id, d.label, d.price, d.daily_quota, d.quota_date
      FROM products p JOIN denominations d ON d.product_id = p.id
      WHERE p.slug = ? AND d.id = ? AND p.active = 1 AND d.active = 1`,
     [productSlug, denominationId]
@@ -623,6 +623,15 @@ async function handleCreateOrder(request, env) {
   if (!item) throw new HttpError(400, "invalid_denomination", "Nominal tidak tersedia untuk produk ini.");
 
   validateTarget(item, playerId, zoneId);
+
+  // Stock check before a QR is built: no QR may ever be issued for a sold-out item.
+  const quota = num(item.daily_quota);
+  if (quota > 0) {
+    const held = (await heldMap(env, [num(item.denomination_id)])).get(num(item.denomination_id)) || 0;
+    if (!stockView(item, held).available) {
+      throw new HttpError(409, "out_of_stock", "Nominal ini sedang habis, silakan pilih nominal lain.");
+    }
+  }
 
   const subtotal = item.price;
   const fee = Math.round((subtotal * feePercent(env)) / 100);
