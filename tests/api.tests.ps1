@@ -858,7 +858,8 @@ Test-Case "ganti nama produk tersimpan dan terlihat di catalog publik" {
     $det = Invoke-Api -Path "/api/products/$($script:CatProduct.slug)"
     Assert-Equal $newName $det.Json.product.name "detail produk memakai nama baru"
   } finally {
-    Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "product"; id = $script:CatProduct.id; name = $script:CatProdName }) | Out-Null
+    $restore = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "product"; id = $script:CatProduct.id; name = $script:CatProdName })
+    if ($restore.Status -ne 200) { Write-Host "PERINGATAN: pemulihan nama produk gagal ($($restore.Status))" -ForegroundColor Yellow }
   }
   Assert-Equal $script:CatProdName (Get-CatalogRow "product" $script:CatProduct.id).name "nama produk harus pulih"
 }
@@ -881,7 +882,8 @@ Test-Case "ganti nama kategori tersimpan dan terlihat di produk" {
     $det = Invoke-Api -Path "/api/products/$($target.slug)"
     Assert-Equal $newName $det.Json.product.category_name "category_name di detail produk"
   } finally {
-    Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "category"; id = $script:CatCategory.id; name = $script:CatCatName }) | Out-Null
+    $restore = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "category"; id = $script:CatCategory.id; name = $script:CatCatName })
+    if ($restore.Status -ne 200) { Write-Host "PERINGATAN: pemulihan nama kategori gagal ($($restore.Status))" -ForegroundColor Yellow }
   }
   Assert-Equal $script:CatCatName (Get-CatalogRow "category" $script:CatCategory.id).name "nama kategori harus pulih"
 }
@@ -918,6 +920,91 @@ Test-Case "nama tanpa perubahan tidak menulis riwayat" {
   $beforeAt = if ($before.last_change) { [string]$before.last_change.changed_at } else { "" }
   $afterAt = if ($after.last_change) { [string]$after.last_change.changed_at } else { "" }
   Assert-Equal $beforeAt $afterAt "last_change tidak boleh bertambah"
+}
+
+Test-Case "tipe dan id item yang salah ditolak" {
+  $badType = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "sku"; id = $script:CatProduct.id; name = "X" })
+  Assert-Equal 400 $badType.Status "tipe tidak dikenal"
+  Assert-Equal "invalid_type" $badType.Json.error "kode error tipe"
+  foreach ($badId in @(0, -1, 1.5, "3", $null)) {
+    $bad = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "product"; id = $badId; name = "X" })
+    Assert-Equal 400 $bad.Status "id tidak valid: $badId"
+    Assert-Equal "invalid_id" $bad.Json.error "kode error id ($badId)"
+  }
+  $noType = Set-CatalogPatch (Get-AdminHeaders) @(@{ id = $script:CatProduct.id; name = "X" })
+  Assert-Equal "invalid_type" $noType.Json.error "tipe hilang"
+  Assert-Equal $script:CatProdName (Get-CatalogRow "product" $script:CatProduct.id).name "nama tidak boleh berubah"
+}
+
+Test-Case "nama non-string ditolak" {
+  foreach ($bad in @(1, 2.5, $true, @("a", "b"))) {
+    $res = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "product"; id = $script:CatProduct.id; name = $bad })
+    Assert-Equal 400 $res.Status "nama non-string: $bad"
+    Assert-Equal "invalid_name" $res.Json.error "kode error nama non-string ($bad)"
+  }
+  $missing = Invoke-Api -Method PATCH -Path "/api/admin/catalog" -Headers (Get-AdminHeaders) -Body @{ items = @(@{ type = "product"; id = $script:CatProduct.id }) }
+  Assert-Equal 400 $missing.Status "nama hilang"
+  Assert-Equal "invalid_name" $missing.Json.error "kode error nama hilang"
+  Assert-Equal $script:CatProdName (Get-CatalogRow "product" $script:CatProduct.id).name "nama tidak boleh berubah"
+}
+
+Test-Case "item ganda ditolak" {
+  $dup = Set-CatalogPatch (Get-AdminHeaders) @(
+    @{ type = "product"; id = $script:CatProduct.id; name = "Satu" },
+    @{ type = "product"; id = $script:CatProduct.id; name = "Dua" }
+  )
+  Assert-Equal 400 $dup.Status "duplikat produk"
+  Assert-Equal "duplicate_item" $dup.Json.error "kode error duplikat"
+  Assert-Equal $script:CatProdName (Get-CatalogRow "product" $script:CatProduct.id).name "nama tidak boleh berubah"
+}
+
+Test-Case "items kosong atau bukan array ditolak" {
+  $empty = Set-CatalogPatch (Get-AdminHeaders) @()
+  Assert-Equal 400 $empty.Status "items kosong"
+  Assert-Equal "invalid_items" $empty.Json.error "kode error items kosong"
+  $notArray = Invoke-Api -Method PATCH -Path "/api/admin/catalog" -Headers (Get-AdminHeaders) -Body @{ items = "produk" }
+  Assert-Equal 400 $notArray.Status "items bukan array"
+  Assert-Equal "invalid_items" $notArray.Json.error "kode error items bukan array"
+  $noItems = Invoke-Api -Method PATCH -Path "/api/admin/catalog" -Headers (Get-AdminHeaders) -Body @{ foo = 1 }
+  Assert-Equal 400 $noItems.Status "items tidak ada"
+  Assert-Equal "invalid_items" $noItems.Json.error "kode error items tidak ada"
+}
+
+Test-Case "lebih dari 50 item ditolak" {
+  $items = @()
+  for ($i = 0; $i -lt 51; $i++) { $items += @{ type = "product"; id = 1; name = "Nama $i" } }
+  $res = Set-CatalogPatch (Get-AdminHeaders) $items
+  Assert-Equal 400 $res.Status "51 item"
+  # Validasi urut: duplikat id juga ada, tapi too_many_items harus diperiksa lebih dulu.
+  Assert-Equal "too_many_items" $res.Json.error "kode error jumlah item"
+}
+
+Test-Case "riwayat nama terbaru bisa dibaca" {
+  $noToken = Invoke-Api -Path "/api/admin/catalog/history" -Headers @{}
+  Assert-Equal 401 $noToken.Status "riwayat tanpa token"
+
+  $newName = $script:CatProdName + " Riwayat"
+  try {
+    $res = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "product"; id = $script:CatProduct.id; name = $newName })
+    Assert-Equal 200 $res.Status "patch untuk riwayat"
+    $hist = Invoke-Api -Path "/api/admin/catalog/history?limit=10" -Headers (Get-AdminHeaders)
+    Assert-Equal 200 $hist.Status "status riwayat"
+    $rows = @($hist.Json.items)
+    Assert-True ($rows.Count -ge 1) "riwayat harus berisi minimal satu baris"
+    Assert-True ($rows.Count -le 10) "limit 10 harus dipatuhi"
+    $top = $rows[0]
+    Assert-Equal "product" $top.entity_type "entitas teratas"
+    Assert-Equal $script:CatProduct.id $top.entity_id "id entitas teratas"
+    Assert-Equal $script:CatProduct.slug $top.slug "slug teratas"
+    Assert-Equal $script:CatProdName $top.old_name "old_name teratas"
+    Assert-Equal $newName $top.new_name "new_name teratas"
+    Assert-Equal "admin" $top.source "source teratas"
+    Assert-True ([string]$top.changed_at -match "^\d{4}-\d{2}-\d{2}T") "changed_at harus ISO"
+  } finally {
+    $restore = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "product"; id = $script:CatProduct.id; name = $script:CatProdName })
+    if ($restore.Status -ne 200) { Write-Host "PERINGATAN: pemulihan nama produk gagal ($($restore.Status))" -ForegroundColor Yellow }
+  }
+  Assert-Equal $script:CatProdName (Get-CatalogRow "product" $script:CatProduct.id).name "nama produk harus pulih"
 }
 
 Write-Host ""

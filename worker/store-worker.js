@@ -462,6 +462,7 @@ async function route(request, env, url) {
   if (method === "GET" && path === "/api/admin/prices") return handleAdminPrices(env);
   if (method === "PATCH" && path === "/api/admin/prices") return handleAdminPricesUpdate(env, request);
   if (method === "GET" && path === "/api/admin/catalog") return handleAdminCatalog(env);
+  if (method === "GET" && path === "/api/admin/catalog/history") return handleAdminCatalogHistory(env, url);
   if (method === "PATCH" && path === "/api/admin/catalog") return handleAdminCatalogUpdate(env, request);
   const adminOrderMatch = path.match(/^\/api\/admin\/orders\/(TG[A-Z0-9]{6,12})$/);
   if (adminOrderMatch && method === "GET") {
@@ -1125,16 +1126,26 @@ async function catalogSnapshot(env) {
     dbAll(env, `${CATALOG_SELECT} ORDER BY c.sort, p.sort, p.id`),
     dbAll(env, `${CATEGORY_SELECT} ORDER BY c.sort, c.id`),
   ]);
-  const items = {
+  return {
     categories: categories.map(catalogCategoryJson),
     products: products.map(catalogProductJson),
+    updated_at: await catalogUpdatedAt(env),
   };
-  let updated = "";
-  for (const it of items.categories.concat(items.products)) {
-    const at = it.last_change && it.last_change.changed_at;
-    if (at && at > updated) updated = at;
-  }
-  return { ...items, updated_at: updated || null };
+}
+
+// MAX(changed_at) langsung dari tabel audit; null saat belum pernah ada perubahan.
+async function catalogUpdatedAt(env) {
+  const row = await dbFirst(env, "SELECT MAX(changed_at) AS at FROM catalog_changes");
+  return (row && row.at) || null;
+}
+
+async function handleAdminCatalogHistory(env, url) {
+  const limit = Math.min(100, Math.max(1, num(url.searchParams.get("limit")) || 10));
+  // ORDER BY id DESC = urutan sisip terbaru, dilayani idx_catalog_changes_entity.
+  const rows = await dbAll(env,
+    `SELECT id, entity_type, entity_id, slug, old_name, new_name, source, changed_at
+       FROM catalog_changes ORDER BY id DESC LIMIT ?`, [limit]);
+  return json({ items: rows });
 }
 
 async function handleAdminCatalog(env) {
@@ -1150,7 +1161,7 @@ function catalogPatchItem(raw) {
   if (!Number.isInteger(id) || id < 1) {
     throw new HttpError(400, "invalid_id", "id tidak valid");
   }
-  const rawName = String(raw.name == null ? "" : raw.name).trim();
+  const rawName = raw && typeof raw.name === "string" ? raw.name.trim() : "";
   // Panjang diukur dari nama asli (setelah trim) supaya nama panjang ditolak,
   // bukan dipotong diam-diam oleh sanitizeText.
   if (!rawName.length || rawName.length > MAX_NAME) {
@@ -1159,6 +1170,24 @@ function catalogPatchItem(raw) {
   const name = sanitizeText(rawName, MAX_NAME);
   if (!name) throw new HttpError(400, "invalid_name", "nama tidak valid");
   return { type, id, name, key: type + ":" + id };
+}
+
+// Satu query untuk semua id (pola priceRows), bukan dbFirst per item.
+async function catalogRows(env, ids, type) {
+  if (!ids.length) return [];
+  const holes = ids.map(() => "?").join(",");
+  const rows = await dbAll(
+    env,
+    type === "product"
+      ? `${CATALOG_SELECT} WHERE p.id IN (${holes})`
+      : `${CATEGORY_SELECT} WHERE c.id IN (${holes})`,
+    ids
+  );
+  const map = new Map();
+  for (const row of rows) {
+    map.set(row.id, type === "product" ? catalogProductJson(row) : catalogCategoryJson(row));
+  }
+  return map;
 }
 
 async function handleAdminCatalogUpdate(env, request) {
@@ -1175,20 +1204,21 @@ async function handleAdminCatalogUpdate(env, request) {
     throw new HttpError(400, "duplicate_item", "item ganda dalam satu permintaan");
   }
 
-  const lookup = async (type, id) => {
-    const row = await dbFirst(
-      env,
-      type === "product"
-        ? `${CATALOG_SELECT} WHERE p.id = ?`
-        : `${CATEGORY_SELECT} WHERE c.id = ?`,
-      [id]
-    );
-    if (!row) throw new HttpError(400, "not_found", type + " " + id + " tidak ditemukan");
-    // Normalisasi supaya perbandingan nama stabil (spasi ganda, dsb).
-    return type === "product" ? catalogProductJson(row) : catalogCategoryJson(row);
+  const lookup = async () => {
+    const byType = {};
+    for (const type of ["product", "category"]) {
+      const ids = items.filter((it) => it.type === type).map((it) => it.id);
+      byType[type] = await catalogRows(env, ids, type);
+    }
+    return (type, id) => {
+      const row = byType[type].get(id);
+      if (!row) throw new HttpError(400, "not_found", type + " " + id + " tidak ditemukan");
+      return row;
+    };
   };
 
-  const current = await Promise.all(items.map((it) => lookup(it.type, it.id)));
+  const find = await lookup();
+  const current = items.map((it) => find(it.type, it.id));
   const changedAt = nowIso();
   const statements = [];
   let changed = 0;
@@ -1210,7 +1240,8 @@ async function handleAdminCatalogUpdate(env, request) {
 
   // Satu batch() = satu transaksi; gagal di tengah berarti batal semua.
   if (statements.length) await env.DB.batch(statements);
-  const updated = await Promise.all(items.map((it) => lookup(it.type, it.id)));
+  const findUpdated = await lookup();
+  const updated = items.map((it) => findUpdated(it.type, it.id));
   return json({ changed, items: updated });
 }
 
@@ -1872,17 +1903,41 @@ function adminPage() {
     run(0);
   }
 
-  var catalogState = { categories: [], products: [], loaded: false };
+  // draft["product:3"] = teks yang belum disimpan. Dibuat dari DOM saat render ulang
+  // akan menghapus ketikan, sehingga auto-refresh 15 detik dan reload setelah simpan
+  // tidak pernah membuang edit yang belum disimpan.
+  var catalogState = { categories: [], products: [], loaded: false, draft: {} };
 
+  function catalogCanSave(kind, id, value) {
+    var orig = catalogFind(kind, id);
+    var next = value.trim();
+    return !!(orig && next && next !== orig.name && next.length <= 60);
+  }
+  function catalogStashDraft() {
+    var list = $("c-list");
+    if (!list) return;
+    Array.prototype.forEach.call(list.querySelectorAll(".crow"), function (row) {
+      var input = row.querySelector("input");
+      if (!input) return;
+      var kind = row.getAttribute("data-kind");
+      var id = Number(row.getAttribute("data-id"));
+      var key = kind + ":" + id;
+      if (catalogCanSave(kind, id, input.value)) catalogState.draft[key] = input.value;
+      else delete catalogState.draft[key];
+    });
+  }
   function catalogRowHtml(kind, it) {
+    var key = kind + ":" + it.id;
+    var draft = Object.prototype.hasOwnProperty.call(catalogState.draft, key) ? catalogState.draft[key] : it.name;
+    var dirty = draft !== it.name;
     var last = it.last_change ? "Terakhir: " + it.last_change.old_name + " → " + it.last_change.new_name : "";
     var extra = kind === "category"
       ? '<span class="delta">' + (it.product_count || 0) + " produk</span>"
       : '<span class="delta">' + esc(it.category_name || "") + "</span>";
     return '<div class="crow' + (it.active ? "" : " dim") + '" data-kind="' + kind + '" data-id="' + it.id + '">' +
       '<div class="meta"><b>' + esc(it.slug) + "</b>" + extra + "</div>" +
-      '<input type="text" maxlength="60" value="' + esc(it.name) + '" aria-label="Nama ' + esc(it.slug) + '" />' +
-      '<button type="button" class="primary" data-save disabled>Simpan</button>' +
+      '<input type="text" maxlength="60" value="' + esc(draft) + '" aria-label="Nama ' + esc(it.slug) + '" />' +
+      '<button type="button" class="primary" data-save' + (dirty ? "" : " disabled") + ">Simpan</button>" +
       (last ? '<span class="delta">' + esc(last) + "</span>" : "") +
     "</div>";
   }
@@ -1893,7 +1948,9 @@ function adminPage() {
       return (it.name + " " + it.slug + " " + (it.category_name || "")).toLowerCase().indexOf(q) !== -1;
     });
   }
-  function renderCatalog() {
+  function renderCatalog(keepScroll) {
+    var y = keepScroll ? $("c-list").getBoundingClientRect().top : 0;
+    catalogStashDraft();
     var cats = catalogFiltered(catalogState.categories);
     var prods = catalogFiltered(catalogState.products);
     var html = '<div class="pcard"><h3>Kategori <span class="delta">' + catalogState.categories.length + "</span></h3>" +
@@ -1903,6 +1960,17 @@ function adminPage() {
       (prods.length ? prods.map(function (it) { return catalogRowHtml("product", it); }).join("") : '<div class="empty">Tidak ada produk yang cocok.</div>') +
       "</div>";
     $("c-list").innerHTML = html;
+    if (keepScroll) {
+      var a = document.activeElement;
+      var focusKey = a && a.tagName === "INPUT" && a.closest(".crow")
+        ? a.closest(".crow").getAttribute("data-kind") + ":" + a.closest(".crow").getAttribute("data-id") : "";
+      // Kembalikan posisi baca supaya simpan satu baris tidak melompat ke atas.
+      window.scrollBy(0, $("c-list").getBoundingClientRect().top - y);
+      if (focusKey) {
+        var again = $("c-list").querySelector('.crow[data-kind="' + focusKey.split(":")[0] + '"][data-id="' + focusKey.split(":")[1] + '"] input');
+        if (again) again.focus();
+      }
+    }
   }
   function catalogFind(kind, id) {
     var list = kind === "category" ? catalogState.categories : catalogState.products;
@@ -1919,11 +1987,12 @@ function adminPage() {
     var row = e.target.closest(".crow");
     if (!row || e.target.tagName !== "INPUT") return;
     var kind = row.getAttribute("data-kind");
-    var orig = catalogFind(kind, Number(row.getAttribute("data-id")));
-    if (!orig) return;
+    var id = Number(row.getAttribute("data-id"));
+    var key = kind + ":" + id;
+    if (catalogCanSave(kind, id, e.target.value)) catalogState.draft[key] = e.target.value;
+    else delete catalogState.draft[key];
     var btn = row.querySelector("[data-save]");
-    var next = e.target.value.trim();
-    btn.disabled = !next || next === orig.name || next.length > 60;
+    btn.disabled = !catalogCanSave(kind, id, e.target.value);
   }
   function saveCatalogRow(row) {
     var kind = row.getAttribute("data-kind");
@@ -1936,16 +2005,20 @@ function adminPage() {
     $("c-notice").textContent = "Menyimpan...";
     api("/api/admin/catalog", "PATCH", { items: [{ type: kind, id: id, name: name }] })
       .then(function (data) {
+        var saved = false;
         (data.items || []).forEach(function (it) {
           catalogSync(kind, it);
+          if (it.name === name) saved = true;
           // Kategori yang berubah nama juga mengubah category_name semua produknya
           // di storefront; segarkan daftar produk dari server agar tidak basi.
-          if (kind === "category") catalogState.loaded = false;
+          if (kind === "category" && data.changed) catalogState.loaded = false;
         });
+        if (saved) delete catalogState.draft[kind + ":" + id];
         $("c-notice").textContent = data.changed
           ? "Nama " + (kind === "category" ? "kategori" : "produk") + " diperbarui."
           : "Tidak ada perubahan.";
-        if (catalogState.loaded) renderCatalog(); else loadCatalog(true);
+        if (catalogState.loaded) renderCatalog(true); else loadCatalog(true);
+        return loadCatalogHistory();
       })
       .catch(function (err) {
         btn.disabled = false;
@@ -1958,7 +2031,7 @@ function adminPage() {
       catalogState.categories = data.categories || [];
       catalogState.products = data.products || [];
       catalogState.loaded = true;
-      renderCatalog();
+      renderCatalog(silent);
       if (!silent) {
         $("c-notice").textContent = catalogState.categories.length + " kategori · " +
           catalogState.products.length + " produk · terakhir diubah " +
@@ -1970,19 +2043,18 @@ function adminPage() {
     });
   }
   function loadCatalogHistory() {
-    var rows = [];
-    catalogState.categories.concat(catalogState.products).forEach(function (it) {
-      if (it.last_change) rows.push({ kind: it.last_change, slug: it.slug });
+    return api("/api/admin/catalog/history?limit=10").then(function (data) {
+      var rows = data.items || [];
+      $("c-history").innerHTML = rows.length ? rows.map(function (r) {
+        return "<div>" +
+          '<span class="t">' + esc(when(r.changed_at)) + "</span>" +
+          "<span>" + esc(r.slug) + "</span>" +
+          "<span>" + esc(r.old_name) + " → " + esc(r.new_name) + "</span>" +
+        "</div>";
+      }).join("") : '<div><span class="t">Belum ada perubahan nama.</span></div>';
+    }).catch(function (err) {
+      $("c-history").innerHTML = '<div><span class="t">Gagal memuat riwayat: ' + esc(err.message) + "</span></div>";
     });
-    rows.sort(function (a, b) { return a.kind.changed_at < b.kind.changed_at ? 1 : -1; });
-    rows = rows.slice(0, 10);
-    $("c-history").innerHTML = rows.length ? rows.map(function (r) {
-      return "<div>" +
-        '<span class="t">' + esc(when(r.kind.changed_at)) + "</span>" +
-        "<span>" + esc(r.slug) + "</span>" +
-        "<span>" + esc(r.kind.old_name) + " → " + esc(r.kind.new_name) + "</span>" +
-      "</div>";
-    }).join("") : '<div><span class="t">Belum ada perubahan nama.</span></div>';
   }
 
   $("loginBtn").addEventListener("click", function () {
@@ -2027,7 +2099,7 @@ function adminPage() {
     var row = btn.closest(".crow");
     if (row) saveCatalogRow(row);
   });
-  $("c-q").addEventListener("input", renderCatalog);
+  $("c-q").addEventListener("input", function () { renderCatalog(true); });
   Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (b) {
     b.addEventListener("click", function () { showTab(b.getAttribute("data-tab")); });
   });
