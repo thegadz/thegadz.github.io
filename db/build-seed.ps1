@@ -36,7 +36,7 @@ if ($ResetPrices) {
   $lines.Add("DELETE FROM denominations;")
   $lines.Add("DELETE FROM products;")
 } else {
-  $lines.Add("-- Mode upsert: price, compare_at, active TIDAK ditimpa (kewenangan admin).")
+  $lines.Add("-- Mode upsert: name, price, compare_at, active TIDAK ditimpa (kewenangan admin).")
 }
 $lines.Add("")
 
@@ -46,7 +46,7 @@ foreach ($category in $categories) {
 }
 $lines.Add("INSERT INTO categories (slug, name, sort, active) VALUES")
 $lines.Add(($categoryValues -join ",`n"))
-$lines.Add("ON CONFLICT(slug) DO UPDATE SET name=excluded.name, sort=excluded.sort, active=excluded.active;")
+$lines.Add("ON CONFLICT(slug) DO UPDATE SET sort=excluded.sort, active=excluded.active;")
 $lines.Add("")
 
 $productValues = @()
@@ -88,7 +88,6 @@ foreach ($product in $products) {
 $lines.Add("INSERT INTO products (slug, name, category_id, unit, short, icon, color, image, target_type, requires_zone, description, active, sort) VALUES")
 $lines.Add(($productValues -join ",`n"))
 $lines.Add("ON CONFLICT(slug) DO UPDATE SET")
-$lines.Add("  name = excluded.name,")
 $lines.Add("  category_id = excluded.category_id,")
 $lines.Add("  short = excluded.short,")
 $lines.Add("  icon = excluded.icon,")
