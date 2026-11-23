@@ -1126,13 +1126,22 @@
       submit.textContent = "Mengunggah…";
     }
     apiUpload("/api/orders/" + encodeURIComponent(orderId) + "/proof", data).then(function () {
-      toast("Bukti pembayaran terkirim. Menunggu verifikasi admin.");
       // The submission is done: drop the chosen file so the form no longer
       // counts as "in use" and the proof preview can be rendered right away.
       if (fileInput) fileInput.value = "";
       if (senderInput) senderInput.value = "";
       if (noteInput) noteInput.value = "";
-      renderOrder(orderId, { silent: true });
+      toast("Bukti pembayaran terkirim. Menunggu verifikasi admin.");
+      // Re-render even if anything above threw: otherwise the button stays
+      // stuck on "Mengunggah…" while the proof already reached the server.
+      try {
+        renderOrder(orderId, { silent: true });
+      } catch (renderError) {
+        if (submit) {
+          submit.disabled = false;
+          submit.textContent = "Kirim bukti pembayaran";
+        }
+      }
     }).catch(function (error) {
       fail(error.message);
     });
@@ -1145,7 +1154,11 @@
     button.disabled = true;
     api("/api/orders/" + encodeURIComponent(orderId) + "/proof", { method: "DELETE" }).then(function () {
       toast("Bukti pembayaran dihapus. Silakan unggah ulang.");
-      renderOrder(orderId, { silent: true });
+      try {
+        renderOrder(orderId, { silent: true });
+      } catch (renderError) {
+        button.disabled = false;
+      }
     }).catch(function (error) {
       button.disabled = false;
       toast(error.message, true);
