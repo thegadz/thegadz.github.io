@@ -53,11 +53,16 @@ function Invoke-Api {
   )
   # HttpClient is used instead of Invoke-WebRequest because PS 5.1 drops the
   # response body on 4xx/5xx, which hides the JSON error contract under test.
+  # Catatan: jangan pakai [System.Net.Http.HttpMethod]::$Method. .NET Framework
+  # 4.x hanya punya properti statis GET/POST/PUT/DELETE; PATCH (dan method lain)
+  # tidak ada sebagai properti, sehingga PowerShell mengembalikan $null dan
+  # konstruktor HttpRequestMessage melempar "Value cannot be null. method".
+  # Konstruktor HttpMethod dari string berlaku untuk semua method.
   Add-Type -AssemblyName System.Net.Http
   $uri = "$ApiBase$Path"
   $client = New-Object System.Net.Http.HttpClient
   $client.Timeout = [TimeSpan]::FromSeconds(45)
-  $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::$Method, $uri)
+  $request = New-Object System.Net.Http.HttpRequestMessage((New-Object System.Net.Http.HttpMethod($Method.ToUpperInvariant())), $uri)
   try {
     $payload = $null
     if (-not [string]::IsNullOrEmpty($RawBody)) {

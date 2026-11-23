@@ -86,7 +86,7 @@ foreach ($product in $products) {
 }
 
 $lines.Add("INSERT INTO products (slug, name, category_id, unit, short, icon, color, image, target_type, requires_zone, description, active, sort) VALUES")
-$lines.Add(($productValues -join ",`n") + ";")
+$lines.Add(($productValues -join ",`n"))
 $lines.Add("ON CONFLICT(slug) DO UPDATE SET")
 $lines.Add("  name = excluded.name,")
 $lines.Add("  category_id = excluded.category_id,")

@@ -83,7 +83,7 @@ INSERT INTO products (slug, name, category_id, unit, short, icon, color, image, 
 ('gopay', 'Gopay', (SELECT id FROM categories WHERE slug='e-money'), 'Saldo', 'Saldo', '💚', '#16a34a', 'gopay.png', 'phone', 0, 'Isi Gopay instan, aman, dan murah. Masukkan nomor HP aktif dengan benar.', 1, 4),
 ('shopeepay', 'ShopeePay', (SELECT id FROM categories WHERE slug='e-money'), 'Saldo', 'Saldo', '🧡', '#f97316', 'shopeepay.png', 'phone', 0, 'Isi ShopeePay instan, aman, dan murah. Masukkan nomor HP aktif dengan benar.', 1, 5),
 ('maxim', 'MAXIM', (SELECT id FROM categories WHERE slug='e-money'), 'Saldo', 'Saldo', '🚕', '#eab308', 'maxim.png', 'phone', 0, 'Isi MAXIM instan, aman, dan murah. Masukkan nomor HP aktif dengan benar.', 1, 6),
-('sakuku', 'Sakuku', (SELECT id FROM categories WHERE slug='e-money'), 'Saldo', 'Saldo', '💳', '#0f766e', 'sakuku.png', 'phone', 0, 'Isi Sakuku instan, aman, dan murah. Masukkan nomor HP aktif dengan benar.', 1, 7);
+('sakuku', 'Sakuku', (SELECT id FROM categories WHERE slug='e-money'), 'Saldo', 'Saldo', '💳', '#0f766e', 'sakuku.png', 'phone', 0, 'Isi Sakuku instan, aman, dan murah. Masukkan nomor HP aktif dengan benar.', 1, 7)
 ON CONFLICT(slug) DO UPDATE SET
   name = excluded.name,
   category_id = excluded.category_id,
