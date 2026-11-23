@@ -59,8 +59,15 @@
     pollTimer: null,
     countdownTimer: null,
     toastTimer: null,
-    orderToken: 0
+    orderToken: 0,
+    orderRefreshPaused: false
   };
+
+  // The order page re-renders itself on a timer to follow payment status. A
+  // re-render replaces the proof form's DOM nodes, which would wipe whatever
+  // the buyer typed. While the buyer is using the proof form we hold the
+  // refresh, and flush it shortly after they leave the form.
+  var PROOF_RESUME_DELAY = 2500;
 
   /* ---------------------------------------------------------------- helpers */
 
@@ -209,6 +216,7 @@
       clearInterval(state.countdownTimer);
       state.countdownTimer = null;
     }
+    state.orderRefreshPaused = false;
   }
 
   function hideViews() {
@@ -828,6 +836,76 @@
       '<a class="primary-btn" style="width:100%;margin-top:12px" href="#/produk/' + esc(order.product_slug) + '">Pesan lagi</a>';
   }
 
+  // True when the buyer has content or focus in the proof form, so a periodic
+  // re-render must not throw that work away.
+  function proofFormBusy() {
+    var form = document.getElementById("orderProofForm");
+    if (!form || !form.isConnected) return false;
+    if (form.contains(document.activeElement)) return true;
+    var file = document.getElementById("orderProofFile");
+    if (file && file.files && file.files.length) return true;
+    var sender = document.getElementById("orderProofSender");
+    if (sender && sender.value.trim()) return true;
+    var note = document.getElementById("orderProofNote");
+    if (note && note.value.trim()) return true;
+    return false;
+  }
+
+  // Used by every background refresh: holds the update while the buyer is
+  // filling the form so their typing is never wiped.
+  function refreshOrderSafely(id) {
+    if (!id) return;
+    if (proofFormBusy()) {
+      if (state.pollTimer) {
+        clearTimeout(state.pollTimer);
+        state.pollTimer = null;
+      }
+      state.orderRefreshPaused = true;
+      return;
+    }
+    renderOrder(id, { silent: true });
+  }
+
+  // A refresh that was held back has no timer of its own (e.g. the follow-up
+  // render after the catalog config loads), so re-arm one while the buyer is
+  // still using the form and the poll would otherwise stop.
+  function keepOrderRefreshPending(id) {
+    if (!id || state.pollTimer) return;
+    state.orderRefreshPaused = true;
+    state.pollTimer = setTimeout(function () {
+      state.pollTimer = null;
+      resumeOrderRefreshTick(id);
+    }, PROOF_RESUME_DELAY);
+  }
+
+  // After the buyer leaves the form, wait a moment (so tabbing between the
+  // fields does not trigger a wipe) and then refresh the order status.
+  function resumeOrderRefresh() {
+    if (state.pollTimer) {
+      clearTimeout(state.pollTimer);
+      state.pollTimer = null;
+    }
+    state.orderRefreshPaused = false;
+    if (!state.route || state.route.name !== "order" || !state.route.id) return;
+    if (state.pollTimer) clearTimeout(state.pollTimer);
+    var id = state.route.id;
+    state.pollTimer = setTimeout(function () {
+      state.pollTimer = null;
+      resumeOrderRefreshTick(id);
+    }, PROOF_RESUME_DELAY);
+  }
+
+  function resumeOrderRefreshTick(id) {
+    if (!state.route || state.route.name !== "order" || state.route.id !== id) return;
+    if (proofFormBusy()) {
+      // Buyer came back to the form (or is still in it): wait once more.
+      keepOrderRefreshPending(id);
+      return;
+    }
+    state.orderRefreshPaused = false;
+    renderOrder(id, { silent: true });
+  }
+
   function renderOrder(id, options) {
     var opts = options || {};
     var view = views.order;
@@ -891,15 +969,17 @@
       if (order.status === "pending" || order.status === "paid") {
         if (state.pollTimer) clearTimeout(state.pollTimer);
         state.pollTimer = setTimeout(function () {
+          state.pollTimer = null;
           if (state.route && state.route.name === "order" && state.route.id === id) {
-            renderOrder(id, { silent: true });
+            refreshOrderSafely(id);
           }
         }, order.status === "pending" ? 6000 : 8000);
       }
       if (!state.config) {
         ensureData().then(function () {
           if (token === state.orderToken && state.route && state.route.name === "order" && state.route.id === id) {
-            renderOrder(id, { silent: true });
+            if (proofFormBusy()) keepOrderRefreshPending(id);
+            else renderOrder(id, { silent: true });
           }
         }).catch(function () {
           /* keep the order visible with fallback settings */
@@ -910,8 +990,9 @@
       if (opts.silent) {
         if (state.pollTimer) clearTimeout(state.pollTimer);
         state.pollTimer = setTimeout(function () {
+          state.pollTimer = null;
           if (state.route && state.route.name === "order" && state.route.id === id) {
-            renderOrder(id, { silent: true });
+            refreshOrderSafely(id);
           }
         }, 10000);
         return;
@@ -979,7 +1060,7 @@
           refreshed = true;
           setTimeout(function () {
             if (state.route && state.route.name === "order" && state.route.id === id) {
-              renderOrder(id, { silent: true });
+              refreshOrderSafely(id);
             }
           }, 800);
         }
@@ -1046,6 +1127,11 @@
     }
     apiUpload("/api/orders/" + encodeURIComponent(orderId) + "/proof", data).then(function () {
       toast("Bukti pembayaran terkirim. Menunggu verifikasi admin.");
+      // The submission is done: drop the chosen file so the form no longer
+      // counts as "in use" and the proof preview can be rendered right away.
+      if (fileInput) fileInput.value = "";
+      if (senderInput) senderInput.value = "";
+      if (noteInput) noteInput.value = "";
       renderOrder(orderId, { silent: true });
     }).catch(function (error) {
       fail(error.message);
@@ -1432,6 +1518,24 @@
     if (!form) return;
     event.preventDefault();
     handleProofUpload(form);
+  });
+
+  // Keep the 6-second status refresh from replacing the proof form while the
+  // buyer is typing in it (this used to clear the text automatically).
+  document.addEventListener("focusin", function (event) {
+    var form = event.target.closest && event.target.closest("#orderProofForm");
+    if (!form) return;
+    state.orderRefreshPaused = true;
+    if (state.pollTimer) {
+      clearTimeout(state.pollTimer);
+      state.pollTimer = null;
+    }
+  });
+
+  document.addEventListener("focusout", function (event) {
+    var form = event.target.closest && event.target.closest("#orderProofForm");
+    if (!form) return;
+    if (state.route && state.route.name === "order" && state.route.id) resumeOrderRefresh();
   });
 
   if (menuBtn) {
