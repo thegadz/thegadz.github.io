@@ -500,6 +500,9 @@ async function route(request, env, url) {
   if (method === "GET" && path === "/api/admin/catalog") return handleAdminCatalog(env);
   if (method === "GET" && path === "/api/admin/catalog/history") return handleAdminCatalogHistory(env, url);
   if (method === "PATCH" && path === "/api/admin/catalog") return handleAdminCatalogUpdate(env, request);
+  if (method === "GET" && path === "/api/admin/stock") return handleAdminStock(env, url);
+  if (method === "GET" && path === "/api/admin/stock/holders") return handleAdminStockHolders(env, url);
+  if (method === "PATCH" && path === "/api/admin/stock") return handleAdminStockUpdate(env, request);
   const adminOrderMatch = path.match(/^\/api\/admin\/orders\/(TG[A-Z0-9]{6,12})$/);
   if (adminOrderMatch && method === "GET") {
     return handleAdminOrder(env, adminOrderMatch[1]);
@@ -1279,6 +1282,161 @@ async function handleAdminCatalogUpdate(env, request) {
   const findUpdated = await lookup();
   const updated = items.map((it) => findUpdated(it.type, it.id));
   return json({ changed, items: updated });
+}
+
+/* ------------------------------------------------------------------ stock */
+
+// date only filters `sold`; held/remaining/available always describe right now.
+async function stockRows(env, dateStr) {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(dateStr || "") ? dateStr : todayWib();
+  const rows = await dbAll(
+    env,
+    `SELECT d.id, d.sku, d.label, d.active, d.daily_quota, d.quota_date, d.quota_note,
+            p.slug AS product_slug, p.name AS product_name, p.active AS product_active,
+            c.name AS category_name
+       FROM denominations d
+       JOIN products p ON p.id = d.product_id
+       JOIN categories c ON c.id = p.category_id
+      ORDER BY p.sort, d.sort, d.id`
+  );
+  // One aggregated query for every denomination; never one query per row.
+  const held = await heldMap(env);
+  const soldRows = await dbAll(
+    env,
+    `SELECT denomination_id AS id, COUNT(*) AS n FROM orders
+      WHERE status IN ('paid','fulfilled') AND paid_at IS NOT NULL
+        AND substr(datetime(paid_at, '+7 hours'), 1, 10) = ?
+      GROUP BY denomination_id`,
+    [date]
+  );
+  const soldMap = new Map(soldRows.map((r) => [num(r.id), num(r.n)]));
+
+  const items = rows.map((row) => {
+    const h = held.get(num(row.id)) || 0;
+    const v = stockView(row, h);
+    return {
+      id: num(row.id),
+      sku: row.sku,
+      label: row.label,
+      product_slug: row.product_slug,
+      product_name: row.product_name,
+      category_name: row.category_name,
+      product_active: num(row.product_active),
+      active: num(row.active),
+      daily_quota: num(row.daily_quota),
+      quota_date: row.quota_date || "",
+      quota_stale: v.quota_stale,
+      quota_note: row.quota_note || "",
+      held: h,
+      remaining: v.remaining,
+      available: v.available,
+      sold: soldMap.get(num(row.id)) || 0,
+    };
+  });
+  const live = items.filter((i) => i.active && i.product_active);
+  return {
+    date: date,
+    summary: {
+      sold: items.reduce((a, i) => a + i.sold, 0),
+      held: live.reduce((a, i) => a + i.held, 0),
+      out_of_stock: live.filter((i) => !i.available).length,
+      quota_stale: live.filter((i) => i.quota_stale).length,
+    },
+    items: items,
+  };
+}
+
+async function handleAdminStock(env, url) {
+  return json(await stockRows(env, url.searchParams.get("date")));
+}
+
+async function handleAdminStockHolders(env, url) {
+  const denom = num(url.searchParams.get("denomination_id"));
+  if (!denom) throw new HttpError(400, "invalid_denomination", "id nominal tidak valid");
+  const limit = Math.min(200, Math.max(1, num(url.searchParams.get("limit")) || 50));
+  const rows = await dbAll(
+    env,
+    `SELECT o.public_id, o.status, o.player_id, o.zone_id, o.total, o.created_at, o.expires_at, o.paid_at
+       FROM orders o WHERE ${HELD_SQL} AND o.denomination_id = ?
+      ORDER BY o.id DESC LIMIT ?`,
+    [nowIso(), denom, limit]
+  );
+  return json({ items: rows });
+}
+
+function stockPatchItem(raw) {
+  const id = num(raw && raw.id);
+  if (!Number.isInteger(id) || id <= 0) throw new HttpError(400, "invalid_denomination", "id nominal tidak valid");
+  const item = { id: id };
+  if (raw.daily_quota !== undefined) {
+    const q = raw.daily_quota;
+    if (typeof q !== "number" || !Number.isInteger(q) || q < 0 || q > 100000) {
+      throw new HttpError(400, "invalid_quota", "jatah harus bilangan bulat 0 sampai 100000");
+    }
+    item.daily_quota = q;
+  }
+  if (raw.note !== undefined) {
+    // Only strings (or null = clear). Number/object would be silently coerced,
+    // and String(null) would leave the literal text "null" as the note.
+    if (raw.note !== null && typeof raw.note !== "string") {
+      throw new HttpError(400, "invalid_note", "catatan harus berupa teks");
+    }
+    const text = raw.note === null ? "" : raw.note;
+    if (text.trim().length > 200) throw new HttpError(400, "invalid_note", "catatan maksimal 200 karakter");
+    item.note = sanitizeText(text, 200);
+  }
+  return item;
+}
+
+async function handleAdminStockUpdate(env, request) {
+  const body = await readJson(request);
+  const rawItems = Array.isArray(body && body.items) ? body.items : [];
+  if (!rawItems.length) throw new HttpError(400, "invalid_items", "tidak ada item yang dikirim");
+  if (rawItems.length > 100) throw new HttpError(400, "too_many_items", "maksimal 100 jatah per permintaan");
+
+  // Validate every item before writing: one bad item rejects the whole request.
+  const items = rawItems.map(stockPatchItem);
+  const ids = items.map((i) => i.id);
+  if (new Set(ids).size !== ids.length) {
+    throw new HttpError(400, "duplicate_item", "id nominal ganda dalam satu permintaan");
+  }
+  const current = await dbAll(
+    env,
+    `SELECT id, sku, label, daily_quota, quota_date, quota_note FROM denominations
+      WHERE id IN (${ids.map(() => "?").join(",")})`,
+    ids
+  );
+  const byId = new Map(current.map((r) => [num(r.id), r]));
+  for (const it of items) {
+    if (!byId.has(it.id)) throw new HttpError(400, "invalid_denomination", "nominal " + it.id + " tidak ditemukan");
+  }
+
+  const today = todayWib();
+  const changedAt = nowIso();
+  const statements = [];
+  let changed = 0;
+  for (const it of items) {
+    const row = byId.get(it.id);
+    const oldQuota = num(row.daily_quota);
+    const oldNote = row.quota_note || "";
+    const newQuota = it.daily_quota !== undefined ? it.daily_quota : oldQuota;
+    const newNote = it.note !== undefined ? it.note : oldNote;
+    if (newQuota === oldQuota && newNote === oldNote) continue;
+    changed++;
+    // Editing the note alone must not refresh quota_date (spec 5.3).
+    const quotaDate = newQuota !== oldQuota ? today : (row.quota_date || "");
+    statements.push(env.DB.prepare(
+      "UPDATE denominations SET daily_quota = ?, quota_note = ?, quota_date = ? WHERE id = ?"
+    ).bind(newQuota, newNote, quotaDate, it.id));
+    statements.push(env.DB.prepare(
+      `INSERT INTO stock_changes (denomination_id, sku, label, old_quota, new_quota, old_note, new_note, quota_date, changed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(it.id, row.sku, row.label, oldQuota, newQuota, oldNote, newNote, quotaDate, changedAt));
+  }
+  // One batch() = one transaction; a failure rolls back every row of this request.
+  if (statements.length) await env.DB.batch(statements);
+  const result = await stockRows(env, null);
+  return json({ changed, date: result.date, summary: result.summary, items: result.items });
 }
 
 async function handleAdminList(env, url) {
