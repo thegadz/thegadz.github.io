@@ -461,6 +461,8 @@ async function route(request, env, url) {
   if (method === "GET" && path === "/api/admin/prices/history") return handleAdminPriceHistory(env, url);
   if (method === "GET" && path === "/api/admin/prices") return handleAdminPrices(env);
   if (method === "PATCH" && path === "/api/admin/prices") return handleAdminPricesUpdate(env, request);
+  if (method === "GET" && path === "/api/admin/catalog") return handleAdminCatalog(env);
+  if (method === "PATCH" && path === "/api/admin/catalog") return handleAdminCatalogUpdate(env, request);
   const adminOrderMatch = path.match(/^\/api\/admin\/orders\/(TG[A-Z0-9]{6,12})$/);
   if (adminOrderMatch && method === "GET") {
     return handleAdminOrder(env, adminOrderMatch[1]);
@@ -1070,6 +1072,148 @@ async function handleAdminPricesUpdate(env, request) {
   return json({ changed, items });
 }
 
+/* ---------------------------------------------------------------- catalog nama */
+
+const MAX_NAME = 60;
+const MAX_CATALOG_ITEMS = 50;
+
+const CATALOG_SELECT = `
+  SELECT p.id, p.slug, p.name, p.active, p.category_id, c.name AS category_name,
+         cc.old_name, cc.new_name, cc.changed_at AS last_changed_at
+  FROM products p
+  JOIN categories c ON c.id = p.category_id
+  -- id DESC = reverse rowid walk with LIMIT 1 (pola sama dengan PRICE_SELECT).
+  LEFT JOIN catalog_changes cc ON cc.id = (
+    SELECT id FROM catalog_changes x
+    WHERE x.entity_type = 'product' AND x.entity_id = p.id ORDER BY x.id DESC LIMIT 1
+  )`;
+
+const CATEGORY_SELECT = `
+  SELECT c.id, c.slug, c.name, c.active,
+         (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count,
+         cc.old_name, cc.new_name, cc.changed_at AS last_changed_at
+  FROM categories c
+  LEFT JOIN catalog_changes cc ON cc.id = (
+    SELECT id FROM catalog_changes x
+    WHERE x.entity_type = 'category' AND x.entity_id = c.id ORDER BY x.id DESC LIMIT 1
+  )`;
+
+function lastChange(row) {
+  return row.last_changed_at
+    ? { old_name: row.old_name, new_name: row.new_name, changed_at: row.last_changed_at }
+    : null;
+}
+
+function catalogProductJson(row) {
+  return {
+    id: row.id, slug: row.slug, name: row.name, active: num(row.active, 0),
+    category_id: row.category_id, category_name: row.category_name,
+    last_change: lastChange(row),
+  };
+}
+
+function catalogCategoryJson(row) {
+  return {
+    id: row.id, slug: row.slug, name: row.name, active: num(row.active, 0),
+    product_count: num(row.product_count, 0), last_change: lastChange(row),
+  };
+}
+
+async function catalogSnapshot(env) {
+  // Dua query tetap, bukan N+1: last_change diambil lewat subselect per baris.
+  const [products, categories] = await Promise.all([
+    dbAll(env, `${CATALOG_SELECT} ORDER BY c.sort, p.sort, p.id`),
+    dbAll(env, `${CATEGORY_SELECT} ORDER BY c.sort, c.id`),
+  ]);
+  const items = {
+    categories: categories.map(catalogCategoryJson),
+    products: products.map(catalogProductJson),
+  };
+  let updated = "";
+  for (const it of items.categories.concat(items.products)) {
+    const at = it.last_change && it.last_change.changed_at;
+    if (at && at > updated) updated = at;
+  }
+  return { ...items, updated_at: updated || null };
+}
+
+async function handleAdminCatalog(env) {
+  return json(await catalogSnapshot(env));
+}
+
+function catalogPatchItem(raw) {
+  const type = raw && typeof raw.type === "string" ? raw.type : "";
+  if (type !== "product" && type !== "category") {
+    throw new HttpError(400, "invalid_type", "type harus product atau category");
+  }
+  const id = raw && typeof raw.id === "number" ? raw.id : NaN;
+  if (!Number.isInteger(id) || id < 1) {
+    throw new HttpError(400, "invalid_id", "id tidak valid");
+  }
+  const rawName = String(raw.name == null ? "" : raw.name).trim();
+  // Panjang diukur dari nama asli (setelah trim) supaya nama panjang ditolak,
+  // bukan dipotong diam-diam oleh sanitizeText.
+  if (!rawName.length || rawName.length > MAX_NAME) {
+    throw new HttpError(400, "invalid_name", "nama harus 1-" + MAX_NAME + " karakter");
+  }
+  const name = sanitizeText(rawName, MAX_NAME);
+  if (!name) throw new HttpError(400, "invalid_name", "nama tidak valid");
+  return { type, id, name, key: type + ":" + id };
+}
+
+async function handleAdminCatalogUpdate(env, request) {
+  const body = await readJson(request);
+  const rawItems = Array.isArray(body && body.items) ? body.items : [];
+  if (!rawItems.length) throw new HttpError(400, "invalid_items", "tidak ada item yang dikirim");
+  if (rawItems.length > MAX_CATALOG_ITEMS) {
+    throw new HttpError(400, "too_many_items", "maksimal " + MAX_CATALOG_ITEMS + " item per permintaan");
+  }
+
+  // Validasi semua item dulu: tidak ada statement ditulis sebelum seluruh input sah.
+  const items = rawItems.map(catalogPatchItem);
+  if (new Set(items.map((it) => it.key)).size !== items.length) {
+    throw new HttpError(400, "duplicate_item", "item ganda dalam satu permintaan");
+  }
+
+  const lookup = async (type, id) => {
+    const row = await dbFirst(
+      env,
+      type === "product"
+        ? `${CATALOG_SELECT} WHERE p.id = ?`
+        : `${CATEGORY_SELECT} WHERE c.id = ?`,
+      [id]
+    );
+    if (!row) throw new HttpError(400, "not_found", type + " " + id + " tidak ditemukan");
+    // Normalisasi supaya perbandingan nama stabil (spasi ganda, dsb).
+    return type === "product" ? catalogProductJson(row) : catalogCategoryJson(row);
+  };
+
+  const current = await Promise.all(items.map((it) => lookup(it.type, it.id)));
+  const changedAt = nowIso();
+  const statements = [];
+  let changed = 0;
+
+  items.forEach((item, i) => {
+    const row = current[i];
+    if (row.name === item.name) return;
+    changed++;
+    statements.push(env.DB.prepare(
+      item.type === "product"
+        ? "UPDATE products SET name = ? WHERE id = ?"
+        : "UPDATE categories SET name = ? WHERE id = ?"
+    ).bind(item.name, item.id));
+    statements.push(env.DB.prepare(
+      `INSERT INTO catalog_changes (entity_type, entity_id, slug, old_name, new_name, source, changed_at)
+       VALUES (?, ?, ?, ?, ?, 'admin', ?)`
+    ).bind(item.type, item.id, row.slug, row.name, item.name, changedAt));
+  });
+
+  // Satu batch() = satu transaksi; gagal di tengah berarti batal semua.
+  if (statements.length) await env.DB.batch(statements);
+  const updated = await Promise.all(items.map((it) => lookup(it.type, it.id)));
+  return json({ changed, items: updated });
+}
+
 async function handleAdminList(env, url) {
   const status = sanitizeText(url.searchParams.get("status"), 20);
   const limit = Math.min(200, Math.max(1, parseInt(url.searchParams.get("limit") || "50", 10) || 50));
@@ -1265,6 +1409,15 @@ function adminPage() {
   .pgrid tr.dim{opacity:.5}
   .pgrid .delta{color:var(--muted);font-size:12px;font-family:ui-monospace,Consolas,monospace}
   .pgrid .last{color:var(--muted);font-size:12px;white-space:nowrap}
+  table.pgrid + .crow,.crow{display:flex;gap:10px;align-items:center;padding:7px 2px;border-bottom:1px solid #f1f5f9;font-size:13px}
+  .crow:last-child{border-bottom:0}
+  .crow.dim{opacity:.5}
+  .crow .meta{display:flex;flex-direction:column;min-width:0;flex:1 1 180px}
+  .crow .meta b{font-family:ui-monospace,Consolas,monospace;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .crow .delta{color:var(--muted);font-size:11px}
+  .crow input{flex:2 1 220px;max-width:320px}
+  .crow button{width:auto;margin:0;padding:8px 14px;flex:0 0 auto}
+  .crow button[disabled]{opacity:.45;cursor:not-allowed}
   .ph{margin:24px 0 8px;font-size:15px}
   .history{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
   .history div{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
@@ -1280,6 +1433,7 @@ function adminPage() {
     <nav class="tabs">
       <button type="button" data-tab="orders" class="on">Pesanan</button>
       <button type="button" data-tab="prices">Harga</button>
+      <button type="button" data-tab="catalog">Produk</button>
       <button type="button" data-tab="stock">Stok</button>
     </nav>
   </div>
@@ -1330,6 +1484,17 @@ function adminPage() {
       <div id="p-list"></div>
       <h3 class="ph">Riwayat perubahan</h3>
       <div id="p-history" class="history"></div>
+    </section>
+    <section data-panel="catalog" hidden>
+      <div class="filters">
+        <input id="c-q" placeholder="Cari nama / slug" style="min-width:220px;width:auto" />
+        <span style="flex:1"></span>
+        <span style="color:var(--muted);font-size:13px">Nama tampil di storefront. Slug &amp; SKU tidak berubah.</span>
+      </div>
+      <p class="notice" id="c-notice"></p>
+      <div id="c-list"></div>
+      <h3 class="ph">Riwayat perubahan nama</h3>
+      <div id="c-history" class="history"></div>
     </section>
   </section>
 </main>
@@ -1397,15 +1562,21 @@ function adminPage() {
     setTab(name);
     if (name === "orders") load();
     else if (name === "prices") loadPrices();
+    else if (name === "catalog") loadCatalog();
     else if (name === "stock" && typeof loadStock === "function") loadStock();
   }
   function editingPrices() {
     var a = document.activeElement;
     return !!(a && $("p-list") && $("p-list").contains(a));
   }
+  function editingCatalog() {
+    var a = document.activeElement;
+    return !!(a && $("c-list") && $("c-list").contains(a));
+  }
   function refreshActive() {
     if (tab === "orders") load();
     else if (tab === "prices") { if (!editingPrices()) loadPrices(); }
+    else if (tab === "catalog") { if (!editingCatalog()) loadCatalog(); }
     else if (typeof loadStock === "function") loadStock();
   }
   function actionButtons(o) {
@@ -1701,8 +1872,120 @@ function adminPage() {
     run(0);
   }
 
+  var catalogState = { categories: [], products: [], loaded: false };
+
+  function catalogRowHtml(kind, it) {
+    var last = it.last_change ? "Terakhir: " + it.last_change.old_name + " → " + it.last_change.new_name : "";
+    var extra = kind === "category"
+      ? '<span class="delta">' + (it.product_count || 0) + " produk</span>"
+      : '<span class="delta">' + esc(it.category_name || "") + "</span>";
+    return '<div class="crow' + (it.active ? "" : " dim") + '" data-kind="' + kind + '" data-id="' + it.id + '">' +
+      '<div class="meta"><b>' + esc(it.slug) + "</b>" + extra + "</div>" +
+      '<input type="text" maxlength="60" value="' + esc(it.name) + '" aria-label="Nama ' + esc(it.slug) + '" />' +
+      '<button type="button" class="primary" data-save disabled>Simpan</button>' +
+      (last ? '<span class="delta">' + esc(last) + "</span>" : "") +
+    "</div>";
+  }
+  function catalogFiltered(list) {
+    var q = $("c-q").value.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(function (it) {
+      return (it.name + " " + it.slug + " " + (it.category_name || "")).toLowerCase().indexOf(q) !== -1;
+    });
+  }
+  function renderCatalog() {
+    var cats = catalogFiltered(catalogState.categories);
+    var prods = catalogFiltered(catalogState.products);
+    var html = '<div class="pcard"><h3>Kategori <span class="delta">' + catalogState.categories.length + "</span></h3>" +
+      (cats.length ? cats.map(function (it) { return catalogRowHtml("category", it); }).join("") : '<div class="empty">Tidak ada kategori yang cocok.</div>') +
+      "</div>" +
+      '<div class="pcard"><h3>Produk <span class="delta">' + catalogState.products.length + "</span></h3>" +
+      (prods.length ? prods.map(function (it) { return catalogRowHtml("product", it); }).join("") : '<div class="empty">Tidak ada produk yang cocok.</div>') +
+      "</div>";
+    $("c-list").innerHTML = html;
+  }
+  function catalogFind(kind, id) {
+    var list = kind === "category" ? catalogState.categories : catalogState.products;
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  function catalogSync(kind, row) {
+    var list = kind === "category" ? catalogState.categories : catalogState.products;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === row.id) { list[i] = row; return; }
+    }
+  }
+  function onCatalogInput(e) {
+    var row = e.target.closest(".crow");
+    if (!row || e.target.tagName !== "INPUT") return;
+    var kind = row.getAttribute("data-kind");
+    var orig = catalogFind(kind, Number(row.getAttribute("data-id")));
+    if (!orig) return;
+    var btn = row.querySelector("[data-save]");
+    var next = e.target.value.trim();
+    btn.disabled = !next || next === orig.name || next.length > 60;
+  }
+  function saveCatalogRow(row) {
+    var kind = row.getAttribute("data-kind");
+    var id = Number(row.getAttribute("data-id"));
+    var input = row.querySelector("input");
+    var btn = row.querySelector("[data-save]");
+    var name = input.value.trim();
+    if (!name) { $("c-notice").textContent = "Nama tidak boleh kosong."; return; }
+    btn.disabled = true;
+    $("c-notice").textContent = "Menyimpan...";
+    api("/api/admin/catalog", "PATCH", { items: [{ type: kind, id: id, name: name }] })
+      .then(function (data) {
+        (data.items || []).forEach(function (it) {
+          catalogSync(kind, it);
+          // Kategori yang berubah nama juga mengubah category_name semua produknya
+          // di storefront; segarkan daftar produk dari server agar tidak basi.
+          if (kind === "category") catalogState.loaded = false;
+        });
+        $("c-notice").textContent = data.changed
+          ? "Nama " + (kind === "category" ? "kategori" : "produk") + " diperbarui."
+          : "Tidak ada perubahan.";
+        if (catalogState.loaded) renderCatalog(); else loadCatalog(true);
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        $("c-notice").textContent = "Gagal menyimpan: " + err.message;
+      });
+  }
+  function loadCatalog(silent) {
+    if (!silent) $("c-notice").textContent = "Memuat katalog...";
+    return api("/api/admin/catalog").then(function (data) {
+      catalogState.categories = data.categories || [];
+      catalogState.products = data.products || [];
+      catalogState.loaded = true;
+      renderCatalog();
+      if (!silent) {
+        $("c-notice").textContent = catalogState.categories.length + " kategori · " +
+          catalogState.products.length + " produk · terakhir diubah " +
+          (data.updated_at ? when(data.updated_at) : "belum pernah");
+      }
+      return loadCatalogHistory();
+    }).catch(function (err) {
+      $("c-notice").textContent = "Gagal memuat katalog: " + err.message;
+    });
+  }
+  function loadCatalogHistory() {
+    var rows = [];
+    catalogState.categories.concat(catalogState.products).forEach(function (it) {
+      if (it.last_change) rows.push({ kind: it.last_change, slug: it.slug });
+    });
+    rows.sort(function (a, b) { return a.kind.changed_at < b.kind.changed_at ? 1 : -1; });
+    rows = rows.slice(0, 10);
+    $("c-history").innerHTML = rows.length ? rows.map(function (r) {
+      return "<div>" +
+        '<span class="t">' + esc(when(r.kind.changed_at)) + "</span>" +
+        "<span>" + esc(r.slug) + "</span>" +
+        "<span>" + esc(r.kind.old_name) + " → " + esc(r.kind.new_name) + "</span>" +
+      "</div>";
+    }).join("") : '<div><span class="t">Belum ada perubahan nama.</span></div>';
+  }
+
   $("loginBtn").addEventListener("click", function () {
-    token = $("token").value.trim();
     if (!token) { showLogin("Token wajib diisi."); return; }
     sessionStorage.setItem("gadz_admin_token", token);
     load();
@@ -1731,6 +2014,20 @@ function adminPage() {
   $("p-q").addEventListener("input", renderPrices);
   $("p-cat").addEventListener("change", renderPrices);
   $("p-all").addEventListener("change", renderPrices);
+  $("c-list").addEventListener("input", onCatalogInput);
+  $("c-list").addEventListener("keydown", function (e) {
+    if (e.key !== "Enter" || e.target.tagName !== "INPUT") return;
+    var row = e.target.closest(".crow");
+    var btn = row && row.querySelector("[data-save]");
+    if (btn && !btn.disabled) saveCatalogRow(row);
+  });
+  $("c-list").addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-save]");
+    if (!btn) return;
+    var row = btn.closest(".crow");
+    if (row) saveCatalogRow(row);
+  });
+  $("c-q").addEventListener("input", renderCatalog);
   Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (b) {
     b.addEventListener("click", function () { showTab(b.getAttribute("data-tab")); });
   });

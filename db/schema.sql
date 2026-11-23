@@ -65,6 +65,20 @@ CREATE TABLE IF NOT EXISTS price_changes (
 CREATE INDEX IF NOT EXISTS idx_price_changes_denom ON price_changes(denomination_id, changed_at);
 CREATE INDEX IF NOT EXISTS idx_price_changes_time ON price_changes(changed_at);
 
+-- Audit perubahan nama produk/kategori. Tanpa FK: riwayat tetap ada walau entitas dihapus.
+CREATE TABLE IF NOT EXISTS catalog_changes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  entity_type TEXT NOT NULL,
+  entity_id INTEGER NOT NULL,
+  slug TEXT NOT NULL DEFAULT '',
+  old_name TEXT NOT NULL,
+  new_name TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'admin',
+  changed_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_catalog_changes_entity ON catalog_changes(entity_type, entity_id, changed_at);
+
 -- Audit perubahan jatah. Tanpa FK: riwayat tetap ada walau nominal dihapus.
 CREATE TABLE IF NOT EXISTS stock_changes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

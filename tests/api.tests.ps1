@@ -785,6 +785,141 @@ Test-Case "satu item invalid membatalkan seluruh patch" {
   Assert-Equal 1 $final.active "active harus pulih"
 }
 
+# ---------------------------------------------------------------- catalog nama
+# Semua tes di blok ini menulis ke produksi, jadi setiap tes memulihkan nama asli
+# di `finally`. Probe diambil sekali dari respons GET agar tes tidak bergantung
+# pada urutan seed.
+$script:CatProbe = (Invoke-Api -Path "/api/admin/catalog" -Headers (Get-AdminHeaders)).Json
+if ($null -eq $script:CatProbe) { throw "GET /api/admin/catalog tidak mengembalikan JSON" }
+$script:CatProduct = @($script:CatProbe.products)[0]
+$script:CatCategory = @($script:CatProbe.categories)[0]
+$script:CatProdName = [string]$script:CatProduct.name
+$script:CatCatName = [string]$script:CatCategory.name
+
+function Set-CatalogPatch($headers, $items) {
+  return Invoke-Api -Method PATCH -Path "/api/admin/catalog" -Headers $headers -Body @{ items = @($items) }
+}
+
+function Get-CatalogRow([string]$kind, [int]$id) {
+  $snap = (Invoke-Api -Path "/api/admin/catalog" -Headers (Get-AdminHeaders)).Json
+  $list = if ($kind -eq "category") { @($snap.categories) } else { @($snap.products) }
+  return @($list | Where-Object { $_.id -eq $id })[0]
+}
+
+Test-Case "admin catalog tanpa token ditolak" {
+  $r = Invoke-Api -Path "/api/admin/catalog" -Headers @{}
+  Assert-Equal 401 $r.Status "GET harus 401 tanpa token"
+  $p = Invoke-Api -Method PATCH -Path "/api/admin/catalog" -Headers @{} -Body @{ items = @(@{ type = "product"; id = 1; name = "x" }) }
+  Assert-Equal 401 $p.Status "PATCH harus 401 tanpa token"
+}
+
+Test-Case "admin catalog mengembalikan kategori dan produk" {
+  $r = Invoke-Api -Path "/api/admin/catalog" -Headers (Get-AdminHeaders)
+  Assert-Equal 200 $r.Status "status katalog admin"
+  Assert-Equal 5 $r.Json.categories.Count "jumlah kategori"
+  Assert-Equal 73 $r.Json.products.Count "jumlah produk"
+  Assert-True ($null -eq $r.Json.updated_at -or $r.Json.updated_at -is [string]) "updated_at harus null atau string"
+  foreach ($c in $r.Json.categories) {
+    Assert-True ($c.id -is [int] -and $c.id -ge 1) "id kategori tidak valid"
+    Assert-True ($c.slug.Length -gt 0) "slug kategori kosong"
+    Assert-True ($c.name.Length -gt 0) "nama kategori kosong"
+    Assert-True ($c.active -eq 0 -or $c.active -eq 1) "active kategori tidak valid"
+    Assert-True ($c.product_count -is [int] -and $c.product_count -ge 0) "product_count tidak valid"
+    Assert-True ($c.PSObject.Properties.Name -contains "last_change") "last_change wajib ada pada kategori"
+  }
+  foreach ($p in $r.Json.products) {
+    Assert-True ($p.id -is [int] -and $p.id -ge 1) "id produk tidak valid"
+    Assert-True ($p.slug.Length -gt 0) "slug produk kosong"
+    Assert-True ($p.name.Length -gt 0) "nama produk kosong"
+    Assert-True ($p.category_id -is [int] -and $p.category_id -ge 1) "category_id produk tidak valid"
+    Assert-True ($p.category_name.Length -gt 0) "category_name produk kosong"
+    Assert-True ($p.PSObject.Properties.Name -contains "last_change") "last_change wajib ada pada produk"
+  }
+}
+
+Test-Case "ganti nama produk tersimpan dan terlihat di catalog publik" {
+  $newName = $script:CatProdName + " Uji"
+  try {
+    $res = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "product"; id = $script:CatProduct.id; name = $newName })
+    Assert-Equal 200 $res.Status "patch nama produk"
+    Assert-Equal 1 $res.Json.changed "satu produk berubah"
+    $item = @($res.Json.items)[0]
+    Assert-Equal $newName $item.name "nama baru di respons"
+    Assert-Equal $script:CatProduct.slug $item.slug "slug tidak boleh berubah"
+    Assert-Equal $newName $item.last_change.new_name "last_change.new_name"
+    Assert-Equal $script:CatProdName $item.last_change.old_name "last_change.old_name"
+
+    $cat = Invoke-Api -Path "/api/catalog"
+    $prod = @($cat.Json.categories.products | Where-Object { $_.slug -eq $script:CatProduct.slug })[0]
+    Assert-True ($null -ne $prod) "produk hilang dari catalog publik"
+    Assert-Equal $newName $prod.name "catalog publik memakai nama baru"
+    Assert-Equal $script:CatProduct.slug $prod.slug "slug produk tetap"
+
+    $det = Invoke-Api -Path "/api/products/$($script:CatProduct.slug)"
+    Assert-Equal $newName $det.Json.product.name "detail produk memakai nama baru"
+  } finally {
+    Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "product"; id = $script:CatProduct.id; name = $script:CatProdName }) | Out-Null
+  }
+  Assert-Equal $script:CatProdName (Get-CatalogRow "product" $script:CatProduct.id).name "nama produk harus pulih"
+}
+
+Test-Case "ganti nama kategori tersimpan dan terlihat di produk" {
+  $newName = $script:CatCatName + " Uji"
+  $target = @($script:CatProbe.products | Where-Object { $_.category_id -eq $script:CatCategory.id })[0]
+  try {
+    $res = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "category"; id = $script:CatCategory.id; name = $newName })
+    Assert-Equal 200 $res.Status "patch nama kategori"
+    Assert-Equal 1 $res.Json.changed "satu kategori berubah"
+    Assert-Equal $newName (@($res.Json.items)[0]).name "nama kategori baru di respons"
+
+    $cat = Invoke-Api -Path "/api/catalog"
+    $catRow = @($cat.Json.categories | Where-Object { $_.slug -eq $script:CatCategory.slug })[0]
+    Assert-Equal $newName $catRow.name "catalog publik memakai nama kategori baru"
+    Assert-True ($null -ne $target) "kategori probe harus punya produk"
+    $prodRow = @($catRow.products | Where-Object { $_.slug -eq $target.slug })[0]
+    Assert-Equal $newName $prodRow.category_name "category_name produk ikut berubah di catalog"
+    $det = Invoke-Api -Path "/api/products/$($target.slug)"
+    Assert-Equal $newName $det.Json.product.category_name "category_name di detail produk"
+  } finally {
+    Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "category"; id = $script:CatCategory.id; name = $script:CatCatName }) | Out-Null
+  }
+  Assert-Equal $script:CatCatName (Get-CatalogRow "category" $script:CatCategory.id).name "nama kategori harus pulih"
+}
+
+Test-Case "nama kosong atau terlalu panjang ditolak" {
+  $empty = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "product"; id = $script:CatProduct.id; name = "   " })
+  Assert-Equal 400 $empty.Status "nama kosong"
+  Assert-Equal "invalid_name" $empty.Json.error "kode error nama kosong"
+  $long = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "product"; id = $script:CatProduct.id; name = ("A" * 61) })
+  Assert-Equal 400 $long.Status "nama 61 karakter"
+  Assert-Equal "invalid_name" $long.Json.error "kode error nama panjang"
+  Assert-Equal $script:CatProdName (Get-CatalogRow "product" $script:CatProduct.id).name "nama tidak boleh berubah"
+}
+
+Test-Case "satu item invalid membatalkan seluruh patch nama" {
+  $newName = $script:CatProdName + " Batal"
+  $res = Set-CatalogPatch (Get-AdminHeaders) @(
+    @{ type = "product"; id = $script:CatProduct.id; name = $newName },
+    @{ type = "product"; id = 999999; name = "Tidak Ada" }
+  )
+  Assert-Equal 400 $res.Status "patch campuran harus 400"
+  Assert-Equal "not_found" $res.Json.error "kode error item tidak ditemukan"
+  Assert-Equal $script:CatProdName (Get-CatalogRow "product" $script:CatProduct.id).name "item valid tidak boleh ikut berubah"
+}
+
+Test-Case "nama tanpa perubahan tidak menulis riwayat" {
+  $before = @((Invoke-Api -Path "/api/admin/catalog" -Headers (Get-AdminHeaders)).Json.products |
+    Where-Object { $_.id -eq $script:CatProduct.id })[0]
+  $res = Set-CatalogPatch (Get-AdminHeaders) @(@{ type = "product"; id = $script:CatProduct.id; name = $script:CatProdName })
+  Assert-Equal 200 $res.Status "patch nama sama"
+  Assert-Equal 0 $res.Json.changed "tidak ada perubahan harus changed=0"
+  $after = (Get-CatalogRow "product" $script:CatProduct.id)
+  Assert-Equal $script:CatProdName $after.name "nama tetap"
+  $beforeAt = if ($before.last_change) { [string]$before.last_change.changed_at } else { "" }
+  $afterAt = if ($after.last_change) { [string]$after.last_change.changed_at } else { "" }
+  Assert-Equal $beforeAt $afterAt "last_change tidak boleh bertambah"
+}
+
 Write-Host ""
 Write-Host "Result: $($script:Pass) passed, $($script:Fail) failed" -ForegroundColor $(if ($script:Fail -eq 0) { "Green" } else { "Red" })
 if ($script:Fail -gt 0) {
